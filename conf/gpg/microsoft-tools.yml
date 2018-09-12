@@ -1,0 +1,10 @@
+# =============================================================================
+# Author:   awmyhr <awmyhr@gmail.com>
+# Revised:  20180831-160326
+# Created:  2018-09-12
+# =============================================================================
+---
+_type: 'gpg'
+_url: 'https://packages.microsoft.com/keys/microsoft.asc'
+name: 'microsoft_tools_gpg'
+key: 'RPM-GPG-KEY-microsoft-tools'
