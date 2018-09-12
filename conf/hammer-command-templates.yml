@@ -1,7 +1,7 @@
 # =============================================================================
 # Synopsis: Hammer command Python string template bits
 # Author:   awmyhr <awmyhr@gmail.com>
-# Revised:  20180912-163852
+# Revised:  20180912-172157
 # Created:  2018-08-31
 # =============================================================================
 ---
@@ -163,15 +163,28 @@ resource:
                     --download-policy "${download-policy}" \
                     --gpg-key "${gpg-key}" \
                     --mirror-on-sync "${mirror-on-sync}" --url "${url}"'
+    create-nogpg: 'create --name "${name}" --label "${label}" \
+                          --product "${product}" \
+                          --checksum-type "${checksum-type}" \
+                          --content-type "${content-type}" \
+                          --download-policy "${download-policy}" \
+                          --mirror-on-sync "${mirror-on-sync}" --url "${url}"'
+    update-nogpg: 'update --name "${name}" --label "${label}" \
+                          --product "${product}" \
+                          --checksum-type "${checksum-type}" \
+                          --content-type "${content-type}" \
+                          --download-policy "${download-policy}" \
+                          --mirror-on-sync "${mirror-on-sync}" --url "${url}"'
   repository-set:
     _description: 'Manipulate repository sets on the server'
     info: 'info --name "${name}" --product "${product}"'
-    list: 'list'
     create: '[[Not supported]]'
     delete: '[[Not supported]]'
     update: '[[Not supported]]'
     disable: 'disable'
     enable: 'enable'
+    disable-noreleasever: 'disable'
+    enable-noreleasever: 'enable'
   role:
     _description: 'Manage user roles.'
   sc-param:
