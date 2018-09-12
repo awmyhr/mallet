@@ -1,0 +1,12 @@
+# =============================================================================
+# Author:   awmyhr <awmyhr@gmail.com>
+# Revised:  2018-08-31
+# Created:  2018-08-31
+# =============================================================================
+---
+type: 'lifecycle-environment'
+stages:
+  - name: 'Monthly'
+    label: 'monthly'
+    description: 'One patch environment, updated monthly.'
+    prior: 'Library'

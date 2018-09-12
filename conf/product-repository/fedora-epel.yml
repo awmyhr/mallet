@@ -1,0 +1,28 @@
+# =============================================================================
+# Author:   awmyhr <awmyhr@gmail.com>
+# Revised:  2018-08-31
+# Created:  2018-08-31
+# =============================================================================
+---
+type: 'product'
+name: 'Extra Packages for Enterprise Linux'
+description: 'Popular packages not provided by official repos which are provided
+              as a convenience and are *not* supported. Note for EL 7 one
+              should also enable Optional and Extras for pre-reqs.'
+sync-plan: 'Weekly'
+rhsm: false
+label: 'epel'
+gpg:
+  name: 'epel_product_gpg'
+  url: 'http://mirror.nodesdirect.com/epel/RPM-GPG-KEY-EPEL'
+repos:
+  # -- Repositories to create
+  - name: 'Extra Packages for Enterprise Linux 7 Server RPMs x86_64'
+    label: '7_server_rpms'
+    content-type: 'yum'
+    checksum-type: 'sha256'
+    download-policy: 'on_demand'
+    url: 'https://download.fedoraproject.org/pub/epel/7/x86_64/'
+    gpg:
+      name: 'epel_7_server_gpg'
+      url: 'http://mirror.nodesdirect.com/epel/RPM-GPG-KEY-EPEL-7'

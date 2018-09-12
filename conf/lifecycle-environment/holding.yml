@@ -1,0 +1,13 @@
+# =============================================================================
+# Author:   awmyhr <awmyhr@gmail.com>
+# Revised:  2018-08-31
+# Created:  2018-08-31
+# =============================================================================
+---
+type: 'lifecycle-environment'
+stages:
+  - name: 'Holding'
+    label: 'holding'
+    description: 'Temporary holding lifecycle for hosts on the move.
+                  This is *not* a permenant home for hosts.'
+    prior: 'Library'

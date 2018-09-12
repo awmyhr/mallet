@@ -1,0 +1,57 @@
+# =============================================================================
+# Author:   awmyhr <awmyhr@gmail.com>
+# Revised:  20180904-154549
+# Created:  2018-09-04
+# =============================================================================
+# -- Note: There are a plethora of HP repos, check for the ones needed:
+#          https://downloads.linux.hpe.com/
+---
+type: 'product'
+name: 'HP Software Delivery Repository'
+description: 'The HP SDR which is provided
+              as a convenience and is not directly supported.'
+sync-plan: 'Weekly'
+rhsm: false
+label: 'hpsdr'
+gpg:
+  name: null
+  url: null
+repos:
+  # -- SPP for RHEL 7 repositories to create
+  - name: 'Service Pack for ProLiant for RHEL 7 Server RPMs x86_64 7Server'
+    label: 'spp_7_server'
+    content-type: 'yum'
+    checksum-type: 'sha256'
+    download-policy: 'on_demand'
+    url: 'https://downloads.linux.hpe.com/SDR/repo/spp/rhel/7Server/x86_64/current/'
+    gpg:
+      name: 'hpspp_product_gpg'
+      url: 'https://downloads.linux.hpe.com/SDR/repo/spp/GPG-KEY-SPP'
+  - name: 'Service Pack for ProLiant for RHEL 7 Server RPMs x86_64 7.5'
+    label: 'spp_7_5'
+    content-type: 'yum'
+    checksum-type: 'sha256'
+    download-policy: 'on_demand'
+    url: 'https://downloads.linux.hpe.com/SDR/repo/spp/rhel/7.5/x86_64/current/'
+    gpg:
+      name: 'hpspp_product_gpg'
+      url: 'https://downloads.linux.hpe.com/SDR/repo/spp/GPG-KEY-SPP'
+  - name: 'Service Pack for ProLiant for RHEL 7 Server RPMs x86_64 7.4'
+    label: 'spp_7_4'
+    content-type: 'yum'
+    checksum-type: 'sha256'
+    download-policy: 'on_demand'
+    url: 'https://downloads.linux.hpe.com/SDR/repo/spp/rhel/7.4/x86_64/current/'
+    gpg:
+      name: 'hpspp_product_gpg'
+      url: 'https://downloads.linux.hpe.com/SDR/repo/spp/GPG-KEY-SPP'
+  # -- SUM for RHEL repositories to create
+  - name: 'HPE Smart Update Manager for RHEL 7 Server RPMs x86_64 7Server'
+    label: 'sum_7_server'
+    content-type: 'yum'
+    checksum-type: 'sha256'
+    download-policy: 'on_demand'
+    url: 'https://downloads.linux.hpe.com/SDR/repo/hpsum/rhel/7Server/x86_64/current/'
+    gpg:
+      name: 'hpsum_product_gpg'
+      url: 'https://downloads.linux.hpe.com/SDR/repo/hpsum/GPG-KEY-hpsum'

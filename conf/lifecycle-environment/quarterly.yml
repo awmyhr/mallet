@@ -1,0 +1,23 @@
+# =============================================================================
+# Author:   awmyhr <awmyhr@gmail.com>
+# Revised:  2018-08-31
+# Created:  2018-08-31
+# =============================================================================
+---
+type: 'lifecycle-environment'
+stages:
+  - name: 'Quarterly Month 1'
+    label: 'lc3p1-quarterly'
+    description: 'Standard quarterly patch cycle month 1.
+                  Recommended for development/test.'
+    prior: 'Library'
+  - name: 'Quarterly Month 2'
+    label: 'lc3p2-quarterly'
+    description: 'Standard quarterly patch cycle month 2.
+                  Recommended for QA.'
+    prior: 'Quarterly Month 1'
+  - name: 'Quarterly Month 3'
+    label: 'lc3p3-quarterly'
+    description: 'Standard quarterly patch cycle month 3.
+                  Recommended for production.'
+    prior: 'Quarterly Month 2'

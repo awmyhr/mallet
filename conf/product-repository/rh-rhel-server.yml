@@ -1,0 +1,55 @@
+# =============================================================================
+# Author:   awmyhr <awmyhr@gmail.com>
+# Revised:  2018-08-30
+# Created:  2018-08-30
+# =============================================================================
+---
+type: 'product'
+name: 'Red Hat Enterprise Linux Server'
+description: null
+sync-plan: 'Daily'
+rhsm: true
+label: null
+gpg:
+  name: null
+  url: null
+  file: null
+repos:
+  # -- RHEL 7 Basic repos to enable
+  - name: 'Red Hat Enterprise Linux 7 Server - Extras RPMs x86_64'
+    repo-set-name: 'Red Hat Enterprise Linux 7 Server - Extras (RPMs)'
+    repo-set-arch: 'x86_64'
+    repo-set-relv: null
+  - name: 'Red Hat Enterprise Linux 7 Server ISOs x86_64 7Server'
+    repo-set-name: 'Red Hat Enterprise Linux 7 Server (ISOs)'
+    repo-set-arch: 'x86_64'
+    repo-set-relv: '7Server'
+  - name: 'Red Hat Enterprise Linux 7 Server Kickstart x86_64 7.4'
+    repo-set-name: 'Red Hat Enterprise Linux 7 Server (Kickstart)'
+    repo-set-arch: 'x86_64'
+    repo-set-relv: '7.4'
+  - name: 'Red Hat Enterprise Linux 7 Server - Optional RPMs x86_64 7Server'
+    repo-set-name: 'Red Hat Enterprise Linux 7 Server - Optional (RPMs)'
+    repo-set-arch: 'x86_64'
+    repo-set-relv: '7Server'
+  - name: 'Red Hat Enterprise Linux 7 Server RPMs x86_64 7Server'
+    repo-set-name: 'Red Hat Enterprise Linux 7 Server (RPMs)'
+    repo-set-arch: 'x86_64'
+    repo-set-relv: '7Server'
+  - name: 'Red Hat Enterprise Linux 7 Server - Supplementary RPMs x86_64 7Server'
+    repo-set-name: 'Red Hat Enterprise Linux 7 Server - Supplementary (RPMs)'
+    repo-set-arch: 'x86_64'
+    repo-set-relv: '7Server'
+  # -- RHEL Satellite Tools repos to enable
+  - name: 'Red Hat Satellite Maintenance 6 for RHEL 7 Server RPMs x86_64'
+    repo-set-name: 'Red Hat Satellite Maintenance 6 (for RHEL 7 Server) (RPMs)'
+    repo-set-arch: 'x86_64'
+    repo-set-relv: null
+  - name: 'Red Hat Satellite Tools 6.3 for RHEL 7 Server RPMs x86_64'
+    repo-set-name: 'Red Hat Satellite Tools 6.3 (for RHEL 7 Server) (RPMs)'
+    repo-set-arch: 'x86_64'
+    repo-set-relv: null
+  - name: 'Red Hat Satellite Tools 6.3 - Puppet 4 for RHEL 7 Server RPMs x86_64'
+    repo-set-name: 'Red Hat Satellite Tools 6.3 - Puppet 4 (for RHEL 7 Server) (RPMs)'
+    repo-set-arch: 'x86_64'
+    repo-set-relv: null

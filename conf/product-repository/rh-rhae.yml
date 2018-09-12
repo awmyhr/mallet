@@ -1,0 +1,22 @@
+# =============================================================================
+# Author:   awmyhr <awmyhr@gmail.com>
+# Revised:  2018-08-31
+# Created:  2018-08-31
+# =============================================================================
+---
+type: 'product'
+name: 'Red Hat Ansible Engine'
+description: null
+sync-plan: 'Daily'
+rhsm: true
+label: null
+gpg:
+  name: null
+  url: null
+  file: null
+repos:
+  # -- Repositories to enable
+  - name: 'Red Hat Ansible Engine 2 RPMs for Red Hat Enterprise Linux 7 Server x86_64'
+    repo-set-name: 'Red Hat Ansible Engine 2 RPMs for Red Hat Enterprise Linux 7 Server'
+    repo-set-arch: 'x86_64'
+    repo-set-relv: null

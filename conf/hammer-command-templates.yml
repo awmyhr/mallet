@@ -1,0 +1,153 @@
+# =============================================================================
+# Synopsis: Hammer command Python string template bits
+# Author:   awmyhr <awmyhr@gmail.com>
+# Revised:  20180911-180437
+# Created:  2018-08-31
+# =============================================================================
+---
+type: 'string-template'
+command: 'hammer'
+output:
+  base: '--output base'
+  table: '--output table'
+  silent: '--output silent'
+  csv: '--output csv'
+  yaml: '--output yaml'
+  json: '--output json'
+subcommand:
+  # -- Subcommand fall-back
+  _default:
+    _description: 'Not a subcommand.'
+    create: 'create --name "${name}" --label "${label}" --description "${description}"'
+    delete: 'delete --name "${name}" --label "${label}"'
+    info: 'info --name "${name}"'
+    list: 'list'
+    update: 'update --name "${name}" --label "${label}" --description "${description}"'
+  # -- Subcommands. Descriptions come directly from 'hammer --help'
+  activation-key:
+    _description: 'Manipulate activation keys.'
+  admin:
+    _description: 'Administrative server-side tasks'
+  architecture:
+    _description: 'Manipulate architectures.'
+  auth:
+    _description: 'Foreman connection login/logout.'
+  auth-source:
+    _description: 'Manipulate auth sources.'
+  bootdisk:
+    _description: 'Download boot disks'
+  capsule:
+    _description: 'Manipulate capsule'
+  compute-resource:
+    _description: 'Manipulate compute resources.'
+  content-host:
+    _description: 'Manipulate content hosts on the server'
+  content-view:
+    _description: 'Manipulate content views.'
+  csv:
+    _description: 'import to or export from a running foreman server'
+  defaults:
+    _description: 'Defaults management'
+  discovery:
+    _description: 'Manipulate discovered hosts.'
+  discovery_rule:
+    _description: 'Manipulate discovered rules.'
+  docker:
+    _description: 'Manipulate docker content'
+  domain:
+    _description: 'Manipulate domains.'
+  environment:
+    _description: 'Manipulate environments.'
+  erratum:
+    _description: 'Manipulate errata'
+  fact:
+    _description: 'Search facts.'
+  filter:
+    _description: 'Manage permission filters.'
+  foreign-input-set:
+    _description: 'Manage foreign input sets'
+  global-parameter:
+    _description: 'Manipulate global parameters.'
+  gpg:
+    _description: 'Manipulate GPG Key actions on the server'
+  host:
+    _description: 'Manipulate hosts.'
+  host-collection:
+    _description: 'Manipulate host collections'
+  hostgroup:
+    _description: 'Manipulate hostgroups.'
+  import:
+    _description: 'Import data exported from a Red Hat Satellite 5 instance'
+  job-invocation:
+    _description: 'Manage job invocations'
+  job-template:
+    _description: 'Manage job templates'
+  lifecycle-environment:
+    _description: 'Manipulate lifecycle_environments on the server'
+  location:
+    _description: 'Manipulate locations.'
+    create: 'create --name "${name}" --parent "${parent}" --description "${description}"'
+    delete: 'delete --name "${name}"'
+    update: 'update --name "${name}" --parent "${parent}" --description "${description}"'
+  medium:
+    _description: 'Manipulate installation media.'
+  model:
+    _description: 'Manipulate hardware models.'
+  organization:
+    _description: 'Manipulate organizations'
+  os:
+    _description: 'Manipulate operating system.'
+  ostree-branch:
+    _description: 'Manipulate ostree branches'
+  package:
+    _description: 'Manipulate packages.'
+  package-group:
+    _description: 'Manipulate package groups'
+  partition-table:
+    _description: 'Manipulate partition tables.'
+  ping:
+    _description: 'Get the status of the server'
+  product:
+    _description: 'Manipulate products.'
+  proxy:
+    _description: 'Manipulate smart proxies.'
+  puppet-class:
+    _description: 'Search puppet modules.'
+  puppet-module:
+    _description: 'View Puppet Module details.'
+  recurring-logic:
+    _description: 'Recurring logic related actions.'
+  remote-execution-feature:
+    _description: 'Manage remote execution features'
+  report:
+    _description: 'Browse and read reports.'
+  repository:
+    _description: 'Manipulate repositories'
+  repository-set:
+    _description: 'Manipulate repository sets on the server'
+  role:
+    _description: 'Manage user roles.'
+  sc-param:
+    _description: 'Manipulate smart class parameters.'
+  settings:
+    _description: 'Change server settings.'
+  shell:
+    _description: 'Interactive shell'
+  smart-variable:
+    _description: 'Manipulate smart variables.'
+  subnet:
+    _description: 'Manipulate subnets.'
+  subscription:
+    _description: 'Manipulate subscriptions.'
+  sync-plan:
+    _description: 'Manipulate sync plans'
+  task:
+    _description: 'Tasks related actions.'
+  template:
+    _description: 'Manipulate config templates.'
+  template-input:
+    _description: 'Manage template inputs'
+  user:
+    _description: 'Manipulate users.'
+  user-group:
+    _description: 'Manage user groups.'

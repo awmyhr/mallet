@@ -1,0 +1,37 @@
+# =============================================================================
+# Author:   awmyhr <awmyhr@gmail.com>
+# Revised:  20180904-145957
+# Created:  2018-08-31
+# =============================================================================
+---
+type: 'product'
+name: 'Microsoft Packages for Linux'
+description: 'Includes various Microsoft OS  tools for Linux, such as
+              PowerShell and are provided .NET SDK. These are provided
+              as a convenience and are *not* supported.'
+sync-plan: 'Weekly'
+rhsm: false
+label: 'microsoft'
+gpg:
+  name: 'microsoft_product_gpg'
+  url: 'https://packages.microsoft.com/keys/microsoft.asc'
+repos:
+  # -- Repositories to create
+  - name: 'Microsoft Packages for Linux 7 Server RPMs x86_64 7Server'
+    label: '7_server_rpms'
+    content-type: 'yum'
+    checksum-type: 'sha256'
+    download-policy: 'on_demand'
+    url: 'https://packages.microsoft.com/rhel/7/prod/'
+    gpg:
+      name: 'microsoft_product_gpg'
+      url: 'https://packages.microsoft.com/keys/microsoft.asc'
+  - name: 'Microsoft Packages for Linux 7 Server RPMs x86_64 7.4'
+    label: '7_4_rpms'
+    content-type: 'yum'
+    checksum-type: 'sha256'
+    download-policy: 'on_demand'
+    url: 'https://packages.microsoft.com/rhel/7.4/prod/'
+    gpg:
+      name: 'microsoft_product_gpg'
+      url: 'https://packages.microsoft.com/keys/microsoft.asc'
