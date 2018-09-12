@@ -1,0 +1,14 @@
+# =============================================================================
+# Author:   awmyhr <awmyhr@gmail.com>
+# Revised:  20180831-160326
+# Created:  2018-08-31
+# =============================================================================
+---
+_type: 'product'
+_rhsm: false
+name: 'Docker Project'
+description: 'The Docker Project repositories which are provided
+              as a convenience and are *not* supported.'
+sync-plan: 'Weekly'
+label: 'Docker_Project'
+gpg-key: 'docker_project_gpg'

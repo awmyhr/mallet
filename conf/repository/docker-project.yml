@@ -1,0 +1,17 @@
+# =============================================================================
+# Author:   awmyhr <awmyhr@gmail.com>
+# Revised:  20180831-160326
+# Created:  2018-08-31
+# =============================================================================
+---
+- _type: 'repository'
+  _rhsm: false
+  name: 'Docker Engine for Enterprise Linux 7 Server RPMs'
+  label: '7_server_rpms'
+  product: 'Docker Project'
+  checksum-type: 'sha256'
+  content-type: 'yum'
+  download-policy: 'on_demand'
+  gpg-key: 'docker_project_gpg'
+  mirror-on-sync: 'false'
+  url: 'https://yum.dockerproject.org/repo/main/centos/7/'
