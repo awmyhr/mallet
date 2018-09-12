@@ -66,7 +66,7 @@ if sys.version_info <= (2, 6):
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
 __version__ = '0.1.0-alpha' #: current version
-__revised__ = '20180912-163707' #: date of most recent revision
+__revised__ = '20180912-172157' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Generates hammer commands from yaml-formatted files.'
 __description__ = '''TODO: CHANGEME
@@ -642,11 +642,15 @@ def main():
 
     cmd_strs = parse_yaml('hammer-command-templates.yml')
 
-    for filename in os.listdir('location'):
-        content = parse_yaml('location/%s' % filename)
-        info = make_str_tpl(cmd_strs, content['type'], 'create')
+    for filename in os.listdir('gpg'):
+        content = parse_yaml('gpg/%s' % filename)
+        info = make_str_tpl(cmd_strs, content['_type'], 'create')
         logger.debug('Returned: %s', info)
-        print(info.substitute(content))
+        if 'items' in content:
+            for item in content['items']:
+                print(info.substitute(item))
+        else:
+            print(info.substitute(content))
         # print(info.substitute(name=content['name'], label=content['label']))
         # print(info.substitute(name=content['name'], label=content['label'],
         #                       description=content['description']))
