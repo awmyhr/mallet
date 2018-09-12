@@ -4,7 +4,7 @@
 # Created:  2018-08-30
 # =============================================================================
 ---
-type: 'location'
+_type: 'location'
 name: 'Earth'
 organization: 'Nixland'
 parent: null
