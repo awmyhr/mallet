@@ -5,6 +5,6 @@
 # =============================================================================
 ---
 _type: 'gpg'
-_url: 'https://yum.dockerproject.org/gpg'
-name: 'docker_project_gpg'
-key: 'RPM-GPG-KEY-docker-project'
+_url: 'https://downloads.linux.hpe.com/SDR/repo/hpsum/GPG-KEY-hpsum'
+name: 'hp_tools_sum_gpg'
+key: 'RPM-GPG-KEY-hp-tools-sum'
