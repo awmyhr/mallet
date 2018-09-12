@@ -66,7 +66,7 @@ if sys.version_info <= (2, 6):
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
 __version__ = '0.1.0-alpha' #: current version
-__revised__ = '20180911-180437' #: date of most recent revision
+__revised__ = '20180912-140632' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Generates hammer commands from yaml-formatted files.'
 __description__ = '''TODO: CHANGEME
@@ -79,8 +79,8 @@ __copyright__ = '2017 awmyhr' #: Copyright short name
 __license__ = 'Apache-2.0'
 __gnu_version__ = False #: If True print GNU version string (which includes copyright/license)
 __cononical_name__ = 'hcg.py' #: static name, *NOT* os.path.basename(sys.argv[0])
-__project_name__ = 'Notes from *NIXLand'  #: name of overall project, if needed
-__project_home__ = 'https://github.com/awmyhr/nixNotes'  #: where to find source/documentation
+__project_name__ = 'The *NIXLand Satellite 6 Project'  #: name of overall project, if needed
+__project_home__ = 'https://github.com/awmyhr/NSat6P'  #: where to find source/documentation
 __template_version__ = '2.5.2'  #: version of template file used
 #-- We are not using this variable for now.
 __docformat__ = 'reStructuredText en'       #: attempted style for documentation
