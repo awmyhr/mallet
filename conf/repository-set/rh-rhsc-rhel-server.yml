@@ -1,0 +1,13 @@
+# =============================================================================
+# Author:   awmyhr <awmyhr@gmail.com>
+# Revised:  2018-08-30
+# Created:  2018-08-30
+# =============================================================================
+---
+_type: 'repository-set'
+_rhsm: true
+items:
+  - name: 'Red Hat Software Collections RPMs for Red Hat Enterprise Linux 7 Server'
+    product: 'Red Hat Software Collections for RHEL Server'
+    basearch: 'x86_64'
+    releasever: '7Server'

@@ -1,0 +1,17 @@
+# =============================================================================
+# Author:   awmyhr <awmyhr@gmail.com>
+# Revised:  2018-08-31
+# Created:  2018-08-31
+# =============================================================================
+---
+_type: 'repository-set'
+_rhsm: true
+items:
+  - name: 'Red Hat Satellite Capsule 6.3 - Puppet 4 (for RHEL 7 Server) (RPMs)'
+    product: 'Red Hat Satellite Capsule'
+    basearch: 'x86_64'
+    releasever: null
+  - name: 'Red Hat Satellite Capsule 6.3 (for RHEL 7 Server) (RPMs)'
+    product: 'Red Hat Satellite Capsule'
+    basearch: 'x86_64'
+    releasever: null
