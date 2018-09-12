@@ -613,17 +613,17 @@ def parse_yaml(filename):
 
 
 #==============================================================================
-def make_str_tpl(strings, subcommand, action):
+def make_str_tpl(strings, resource, action):
     ''' working '''
     logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
 
-    if subcommand in strings['subcommand']:
-        if action in strings['subcommand'][subcommand]:
-            str_tpl = Template('%s %s %s' % (strings['command'], subcommand,
-                                             strings['subcommand'][subcommand][action]))
-        elif action in strings['subcommand']['_default']:
-            str_tpl = Template('%s %s %s' % (strings['command'], subcommand,
-                                             strings['subcommand']['_default'][action]))
+    if resource in strings['resource']:
+        if action in strings['resource'][resource]:
+            str_tpl = Template('%s %s %s' % (strings['command'], resource,
+                                             strings['resource'][resource][action]))
+        elif action in strings['resource']['_default']:
+            str_tpl = Template('%s %s %s' % (strings['command'], resource,
+                                             strings['resource']['_default'][action]))
         else:
             #: Action not found.
             str_tpl = None

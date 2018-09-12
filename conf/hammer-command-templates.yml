@@ -14,16 +14,18 @@ output:
   csv: '--output csv'
   yaml: '--output yaml'
   json: '--output json'
-subcommand:
-  # -- Subcommand fall-back
+resource:
+  # -- resource fall-back
   _default:
-    _description: 'Not a subcommand.'
-    create: 'create --name "${name}" --label "${label}" --description "${description}"'
+    _description: 'Not a resource.'
+    create: 'create --name "${name}" --label "${label}" \
+                    --description "${description}"'
     delete: 'delete --name "${name}" --label "${label}"'
     info: 'info --name "${name}"'
     list: 'list'
-    update: 'update --name "${name}" --label "${label}" --description "${description}"'
-  # -- Subcommands. Descriptions come directly from 'hammer --help'
+    update: 'update --name "${name}" --label "${label}" \
+                    --description "${description}"'
+  # -- Resources. Descriptions come directly from 'hammer --help'
   activation-key:
     _description: 'Manipulate activation keys.'
   admin:
@@ -70,6 +72,9 @@ subcommand:
     _description: 'Manipulate global parameters.'
   gpg:
     _description: 'Manipulate GPG Key actions on the server'
+    create: 'create --name "${name}" --key "${key}"'
+    delete: 'delete --name "${name}"'
+    update: 'update --name "${name}" --key "${key}"'
   host:
     _description: 'Manipulate hosts.'
   host-collection:
@@ -86,9 +91,11 @@ subcommand:
     _description: 'Manipulate lifecycle_environments on the server'
   location:
     _description: 'Manipulate locations.'
-    create: 'create --name "${name}" --parent "${parent}" --description "${description}"'
+    create: 'create --name "${name}" --parent-id "${parent-id}" \
+                    --description "${description}"'
     delete: 'delete --name "${name}"'
-    update: 'update --name "${name}" --parent "${parent}" --description "${description}"'
+    update: 'update --name "${name}" --parent-id "${parent-id}" \
+                    --description "${description}"'
   medium:
     _description: 'Manipulate installation media.'
   model:
@@ -109,6 +116,15 @@ subcommand:
     _description: 'Get the status of the server'
   product:
     _description: 'Manipulate products.'
+    create: 'create --name "${name}" --label "${label}" \
+                    --description "${description}" \
+                    --gpg-key "${gpg-key}" \
+                    --sync-plan "${sync-plan}"'
+    delete: 'delete --name "${name}"'
+    update: 'update --name "${name}" --label "${label}" \
+                    --description "${description}" \
+                    --gpg-key "${gpg-key}" \
+                    --sync-plan "${sync-plan}"'
   proxy:
     _description: 'Manipulate smart proxies.'
   puppet-class:
@@ -123,6 +139,21 @@ subcommand:
     _description: 'Browse and read reports.'
   repository:
     _description: 'Manipulate repositories'
+    create: 'create --name "${name}" --label "${label}" \
+                    --product "${product}" \
+                    --checksum-type "${checksum-type}" \
+                    --content-type "${content-type}" \
+                    --download-policy "${download-policy}" \
+                    --gpg-key "${gpg-key}" \
+                    --mirror-on-sync "${mirror-on-sync}" --url "${url}"'
+    delete: 'delete --name "${name}" --product "${product}'
+    update: 'update --name "${name}" --label "${label}" \
+                    --product "${product}" \
+                    --checksum-type "${checksum-type}" \
+                    --content-type "${content-type}" \
+                    --download-policy "${download-policy}" \
+                    --gpg-key "${gpg-key}" \
+                    --mirror-on-sync "${mirror-on-sync}" --url "${url}"'
   repository-set:
     _description: 'Manipulate repository sets on the server'
   role:
