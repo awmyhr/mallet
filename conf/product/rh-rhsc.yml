@@ -4,23 +4,7 @@
 # Created:  2018-08-31
 # =============================================================================
 ---
-type: 'product'
+_type: 'product'
+_rhsm: true
 name: 'Red Hat Satellite Capsule'
-description: null
 sync-plan: 'Daily'
-rhsm: true
-label: null
-gpg:
-  name: null
-  url: null
-  file: null
-repos:
-  # -- Repositories to enable
-  - name: 'Red Hat Satellite Capsule 6.3 - Puppet 4 for RHEL 7 Server RPMs x86_64'
-    repo-set-name: 'Red Hat Satellite Capsule 6.3 - Puppet 4 (for RHEL 7 Server) (RPMs)'
-    repo-set-arch: 'x86_64'
-    repo-set-relv: null
-  - name: 'Red Hat Satellite Capsule 6.3 for RHEL 7 Server RPMs x86_64'
-    repo-set-name: 'Red Hat Satellite Capsule 6.3 (for RHEL 7 Server) (RPMs)'
-    repo-set-arch: 'x86_64'
-    repo-set-relv: null

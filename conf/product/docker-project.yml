@@ -10,5 +10,5 @@ name: 'Docker Project'
 description: 'The Docker Project repositories which are provided
               as a convenience and are *not* supported.'
 sync-plan: 'Weekly'
-label: 'Docker_Project'
+label: 'docker'
 gpg-key: 'docker_project_gpg'
