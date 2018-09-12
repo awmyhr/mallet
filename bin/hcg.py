@@ -66,7 +66,7 @@ if sys.version_info <= (2, 6):
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
 __version__ = '0.1.0-alpha' #: current version
-__revised__ = '20180912-140632' #: date of most recent revision
+__revised__ = '20180912-163707' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Generates hammer commands from yaml-formatted files.'
 __description__ = '''TODO: CHANGEME
@@ -626,10 +626,10 @@ def make_str_tpl(strings, resource, action):
                                              strings['resource']['_default'][action]))
         else:
             #: Action not found.
-            str_tpl = None
+            str_tpl = Template('[[Action %s not found]]' % action)
     else:
-        #: Subcommand not found.
-        str_tpl = None
+        #: Resource not found.
+        str_tpl = Template('[[Resource %s not found]]' % resource)
     return str_tpl
 
 
