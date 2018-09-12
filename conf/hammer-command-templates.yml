@@ -1,7 +1,7 @@
 # =============================================================================
 # Synopsis: Hammer command Python string template bits
 # Author:   awmyhr <awmyhr@gmail.com>
-# Revised:  20180911-180437
+# Revised:  20180912-163852
 # Created:  2018-08-31
 # =============================================================================
 ---
@@ -125,6 +125,15 @@ resource:
                     --description "${description}" \
                     --gpg-key "${gpg-key}" \
                     --sync-plan "${sync-plan}"'
+    create-nogpg: 'create --name "${name}" --label "${label}" \
+                          --description "${description}" \
+                          --sync-plan "${sync-plan}"'
+    update-nogpg: 'update --name "${name}" --label "${label}" \
+                          --description "${description}" \
+                          --sync-plan "${sync-plan}"'
+    create-rhsm: '[[Not supported]]'
+    delete-rhsm: '[[Not supported]]'
+    update-rhsm: 'update --name "${name}" --sync-plan "${sync-plan}"'
   proxy:
     _description: 'Manipulate smart proxies.'
   puppet-class:
@@ -146,7 +155,7 @@ resource:
                     --download-policy "${download-policy}" \
                     --gpg-key "${gpg-key}" \
                     --mirror-on-sync "${mirror-on-sync}" --url "${url}"'
-    delete: 'delete --name "${name}" --product "${product}'
+    delete: 'delete --name "${name}" --product "${product}"'
     update: 'update --name "${name}" --label "${label}" \
                     --product "${product}" \
                     --checksum-type "${checksum-type}" \
@@ -156,6 +165,13 @@ resource:
                     --mirror-on-sync "${mirror-on-sync}" --url "${url}"'
   repository-set:
     _description: 'Manipulate repository sets on the server'
+    info: 'info --name "${name}" --product "${product}"'
+    list: 'list'
+    create: '[[Not supported]]'
+    delete: '[[Not supported]]'
+    update: '[[Not supported]]'
+    disable: 'disable'
+    enable: 'enable'
   role:
     _description: 'Manage user roles.'
   sc-param:
