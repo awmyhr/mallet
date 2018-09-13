@@ -549,6 +549,20 @@ class RunOptions(object):
         ''' Class property '''
         return bool(__basename__.startswith('ansible_module'))
 
+    @property
+    def resource(self):
+        """ Class property """
+        if self._options is not None:
+            return self._options.resource
+        return None
+
+    @property
+    def action(self):
+        """ Class property """
+        if self._options is not None:
+            return self._options.action
+        return None
+
     def _parse_args(self, args):
         #-- Parse Options (rely on OptionsParser's exception handling)
         description_string = __synopsis__
@@ -592,6 +606,11 @@ class RunOptions(object):
             sys.exit(os.EX_OK)
         #-- Put any option validation here...
 
+        if len(parsed_args) != 2:
+            parser.error('Wrong number of arguments, 2 required: resource action')
+        parsed_opts.resource = parsed_args[0]
+        parsed_opts.action = parsed_args[1]
+
         return parsed_opts, parsed_args
 
 
@@ -618,18 +637,24 @@ def gen_cmd(strings, resource, variant, action, item):
     logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
 
     if variant:
-        lookup = '%s-%s' % (resource, variant)
+        resource_type = '%s-%s' % (resource, variant)
     else:
-        lookup = resource
+        resource_type = resource
 
-    if lookup in strings['resource']:
-        if '_optional' in strings['resource'][lookup]:
-            for option in strings['resource'][lookup]['_optional']:
-                if not item[option]:
+    if resource_type in strings['resource']:
+        if '_lookup' in strings['resource'][resource_type]:
+            for lookup in strings['resource'][resource_type]['_lookup']:
+                if item[lookup['key']]:
+                    lookup_cmd = Template(lookup['command']).substitute(item)
+                    print(lookup_cmd)
+        if '_optional' in strings['resource'][resource_type]:
+            for option in strings['resource'][resource_type]['_optional']:
+                if option not in item or not item[option]:
                     action = '%s-no%s' % (action, option)
-        if action in strings['resource'][lookup]:
+
+        if action in strings['resource'][resource_type]:
             str_tpl = Template('%s %s %s' % (strings['command'], resource,
-                                             strings['resource'][lookup][action]))
+                                             strings['resource'][resource_type][action]))
         elif action in strings['resource']['_default']:
             str_tpl = Template('%s %s %s' % (strings['command'], resource,
                                              strings['resource']['_default'][action]))
@@ -650,11 +675,9 @@ def main():
     logger.debug('Starting main()')
 
     cmd_strs = parse_yaml('cra-strings.yml')
-    resource = 'product'
-    action = 'update'
 
-    for filename in os.listdir(resource):
-        content = parse_yaml('%s/%s' % (resource, filename))
+    for filename in os.listdir(options.resource):
+        content = parse_yaml('%s/%s' % (options.resource, filename))
         if '_variant' in content:
             variant = content['_variant']
         else:
@@ -663,11 +686,11 @@ def main():
         if 'items' in content:
             for item in content['items']:
                 info = gen_cmd(strings=cmd_strs, resource=content['_type'],
-                               variant=variant, action=action, item=item)
+                               variant=variant, action=options.action, item=item)
                 print(info)
         else:
             info = gen_cmd(strings=cmd_strs, resource=content['_type'],
-                           variant=variant, action=action, item=content)
+                           variant=variant, action=options.action, item=content)
             print(info)
 
 

@@ -95,8 +95,13 @@ resource:
     update: 'update --name "${name}" --description "${description}"'
   location:
     _description: 'Manipulate locations.'
+    _lookup:
+      - name: 'parentId'
+        key: 'parent'
+        command: 'hammer location info --name "${parent}"
+                 | grep -i "^id" | grep -o "[0-9]*"'
     _optional:
-      - parentID
+      - parentId
     create: 'create --name "${name}" --parent-id "${parentId}"
                     --description "${description}"'
     delete: 'delete --name "${name}"'
@@ -143,8 +148,8 @@ resource:
                              --sync-plan "${syncPlan}"'
   product-rhsm:
     _description: 'Manipulate RHSM products.'
-    create: '[[Not supported]]'
-    delete: '[[Not supported]]'
+    create: '[[Create not supported for ${name}]]'
+    delete: '[[Delete not supported for ${name}]]'
     update: 'update --name "${name}" --sync-plan "${syncPlan}"'
   proxy:
     _description: 'Manipulate smart proxies.'
