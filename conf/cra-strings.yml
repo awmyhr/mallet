@@ -18,12 +18,12 @@ resource:
   # -- resource fall-back
   _default:
     _description: 'Not a resource.'
-    create: 'create --name "${name}" --label "${label}" \
+    create: 'create --name "${name}" --label "${label}"
                     --description "${description}"'
     delete: 'delete --name "${name}" --label "${label}"'
     info: 'info --name "${name}"'
     list: 'list'
-    update: 'update --name "${name}" --label "${label}" \
+    update: 'update --name "${name}" --label "${label}"
                     --description "${description}"'
   # -- Resources. Descriptions come directly from 'hammer --help'
   activation-key:
@@ -89,17 +89,21 @@ resource:
     _description: 'Manage job templates'
   lifecycle-environment:
     _description: 'Manipulate lifecycle_environments on the server'
-    create: 'create --name "${name}" --label "${label}" \
+    create: 'create --name "${name}" --label "${label}"
                     --description "${description}" --prior "${prior}"'
     delete: 'delete --name "${name}"'
     update: 'update --name "${name}" --description "${description}"'
   location:
     _description: 'Manipulate locations.'
-    create: 'create --name "${name}" --parent-id "${parentId}" \
+    _optional:
+      - parentID
+    create: 'create --name "${name}" --parent-id "${parentId}"
                     --description "${description}"'
     delete: 'delete --name "${name}"'
-    update: 'update --name "${name}" --parent-id "${parentId}" \
+    update: 'update --name "${name}" --parent-id "${parentId}"
                     --description "${description}"'
+    create-noparentId: 'create --name "${name}" --description "${description}"'
+    update-noparentId: 'update --name "${name}" --description "${description}"'
   medium:
     _description: 'Manipulate installation media.'
   model:
@@ -120,24 +124,28 @@ resource:
     _description: 'Get the status of the server'
   product:
     _description: 'Manipulate products.'
-    create: 'create --name "${name}" --label "${label}" \
-                    --description "${description}" \
-                    --gpg-key "${gpgKey}" \
+    _optional:
+      - gpgKey
+    create: 'create --name "${name}" --label "${label}"
+                    --description "${description}"
+                    --gpg-key "${gpgKey}"
                     --sync-plan "${syncPlan}"'
     delete: 'delete --name "${name}"'
-    update: 'update --name "${name}" --label "${label}" \
-                    --description "${description}" \
-                    --gpg-key "${gpgKey}" \
+    update: 'update --name "${name}" --label "${label}"
+                    --description "${description}"
+                    --gpg-key "${gpgKey}"
                     --sync-plan "${syncPlan}"'
-    create-nogpg: 'create --name "${name}" --label "${label}" \
-                          --description "${description}" \
-                          --sync-plan "${syncPlan}"'
-    update-nogpg: 'update --name "${name}" --label "${label}" \
-                          --description "${description}" \
-                          --sync-plan "${syncPlan}"'
-    create-rhsm: '[[Not supported]]'
-    delete-rhsm: '[[Not supported]]'
-    update-rhsm: 'update --name "${name}" --sync-plan "${syncPlan}"'
+    create-nogpgKey: 'create --name "${name}" --label "${label}"
+                             --description "${description}"
+                             --sync-plan "${syncPlan}"'
+    update-nogpgKey: 'update --name "${name}" --label "${label}"
+                             --description "${description}"
+                             --sync-plan "${syncPlan}"'
+  product-rhsm:
+    _description: 'Manipulate RHSM products.'
+    create: '[[Not supported]]'
+    delete: '[[Not supported]]'
+    update: 'update --name "${name}" --sync-plan "${syncPlan}"'
   proxy:
     _description: 'Manipulate smart proxies.'
   puppet-class:
@@ -152,45 +160,59 @@ resource:
     _description: 'Browse and read reports.'
   repository:
     _description: 'Manipulate repositories'
-    create: 'create --name "${name}" --label "${label}" \
-                    --product "${product}" \
-                    --checksum-type "${checksumType}" \
-                    --content-type "${contentType}" \
-                    --download-policy "${downloadPolicy}" \
-                    --gpg-key "${gpgKey}" \
+    _optional:
+      - gpgKey
+    create: 'create --name "${name}" --label "${label}"
+                    --product "${product}"
+                    --checksum-type "${checksumType}"
+                    --content-type "${contentType}"
+                    --download-policy "${downloadPolicy}"
+                    --gpg-key "${gpgKey}"
                     --mirror-on-sync "${mirrorOnSync}" --url "${url}"'
     delete: 'delete --name "${name}" --product "${product}"'
-    update: 'update --name "${name}" --label "${label}" \
-                    --product "${product}" \
-                    --checksum-type "${checksum-Type}" \
-                    --content-type "${contentType}" \
-                    --download-policy "${downloadPolicy}" \
-                    --gpg-key "${gpgKey}" \
+    update: 'update --name "${name}" --label "${label}"
+                    --product "${product}"
+                    --checksum-type "${checksum-Type}"
+                    --content-type "${contentType}"
+                    --download-policy "${downloadPolicy}"
+                    --gpg-key "${gpgKey}"
                     --mirror-on-sync "${mirrorOnSync}" --url "${url}"'
-    create-nogpg: 'create --name "${name}" --label "${label}" \
-                          --product "${product}" \
-                          --checksum-type "${checksumType}" \
-                          --content-type "${contentType}" \
-                          --download-policy "${downloadPolicy}" \
-                          --mirror-on-sync "${mirrorOnSync}" --url "${url}"'
-    update-nogpg: 'update --name "${name}" --label "${label}" \
-                          --product "${product}" \
-                          --checksum-type "${checksumType}" \
-                          --content-type "${contentType}" \
-                          --download-policy "${downloadPolicy}" \
-                          --mirror-on-sync "${mirrorOnSync}" --url "${url}"'
+    create-nogpgKey: 'create --name "${name}" --label "${label}"
+                             --product "${product}"
+                             --checksum-type "${checksumType}"
+                             --content-type "${contentType}"
+                             --download-policy "${downloadPolicy}"
+                             --mirror-on-sync "${mirrorOnSync}" --url "${url}"'
+    update-nogpgKey: 'update --name "${name}" --label "${label}"
+                             --product "${product}"
+                             --checksum-type "${checksumType}"
+                             --content-type "${contentType}"
+                             --download-policy "${downloadPolicy}"
+                             --mirror-on-sync "${mirrorOnSync}" --url "${url}"'
   repository-set:
+    # repository-set has no create/delete actions, however the effects of
+    # enable/disable are functionally the same, so we 'alias' them...
     _description: 'Manipulate repository sets on the server'
+    _optional:
+      - releasever
     info: 'info --name "${name}" --product "${product}"'
-    create: 'enable'
-    enable: 'enable'
-    delete: 'disable'
-    disable: 'disable'
+    create: 'enable --name "${name}" --product "${product}"
+                    --basearch "${basearch}" --releasever "${releasever}"'
+    enable: 'enable --name "${name}" --product "${product}"
+                    --basearch "${basearch}" --releasever "${releasever}"'
+    delete: 'disable --name "${name}" --product "${product}"
+                    --basearch "${basearch}" --releasever "${releasever}"'
+    disable: 'disable --name "${name}" --product "${product}"
+                    --basearch "${basearch}" --releasever "${releasever}"'
     update: '[[Not supported]]'
-    create-noreleasever: 'enable'
-    enable-noreleasever: 'enable'
-    delete-noreleasever: 'disable'
-    disable-noreleasever: 'disable'
+    create-noreleasever: 'enable --name "${name}" --product "${product}"
+                                   --basearch "${basearch}"'
+    enable-noreleasever: 'enable --name "${name}" --product "${product}"
+                                   --basearch "${basearch}"'
+    delete-noreleasever: 'disable --name "${name}" --product "${product}"
+                                   --basearch "${basearch}"'
+    disable-noreleasever: 'disable --name "${name}" --product "${product}"
+                                   --basearch "${basearch}"'
   role:
     _description: 'Manage user roles.'
   sc-param:
@@ -207,12 +229,12 @@ resource:
     _description: 'Manipulate subscriptions.'
   sync-plan:
     _description: 'Manipulate sync plans'
-    create: 'create --name "${name}" --enabled "${enabled}" \
-                    --sync-date "${syncDate}" --interval "${interval}" \
+    create: 'create --name "${name}" --enabled "${enabled}"
+                    --sync-date "${syncDate}" --interval "${interval}"
                     --description "${description}"'
     delete: 'delete --name "${name}"'
-    update: 'update --name "${name}" --enabled "${enabled}" \
-                    --sync-date "${syncDate}" --interval "${interval}" \
+    update: 'update --name "${name}" --enabled "${enabled}"
+                    --sync-date "${syncDate}" --interval "${interval}"
                     --description "${description}"'
   task:
     _description: 'Tasks related actions.'

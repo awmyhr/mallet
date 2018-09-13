@@ -44,8 +44,8 @@ import logging      #: Python's standard logging facilities
 import os           #: Misc. OS interfaces
 import sys          #: System-specific parameters & functions
 # import traceback    #: Print/retrieve a stack traceback
-import yaml
 from string import Template
+import yaml
 #==============================================================================
 #-- Third Party Imports
 #==============================================================================
@@ -613,24 +613,33 @@ def parse_yaml(filename):
 
 
 #==============================================================================
-def make_str_tpl(strings, resource, action):
+def gen_cmd(strings, resource, variant, action, item):
     ''' working '''
     logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
 
-    if resource in strings['resource']:
-        if action in strings['resource'][resource]:
+    if variant:
+        lookup = '%s-%s' % (resource, variant)
+    else:
+        lookup = resource
+
+    if lookup in strings['resource']:
+        if '_optional' in strings['resource'][lookup]:
+            for option in strings['resource'][lookup]['_optional']:
+                if not item[option]:
+                    action = '%s-no%s' % (action, option)
+        if action in strings['resource'][lookup]:
             str_tpl = Template('%s %s %s' % (strings['command'], resource,
-                                             strings['resource'][resource][action]))
+                                             strings['resource'][lookup][action]))
         elif action in strings['resource']['_default']:
             str_tpl = Template('%s %s %s' % (strings['command'], resource,
                                              strings['resource']['_default'][action]))
         else:
             #: Action not found.
-            str_tpl = Template('[[Action %s not found]]' % action)
+            return '[[Action %s not found]]' % action
     else:
         #: Resource not found.
-        str_tpl = Template('[[Resource %s not found]]' % resource)
-    return str_tpl
+        return '[[Resource %s not found]]' % resource
+    return str_tpl.substitute(item)
 
 
 #==============================================================================
@@ -640,20 +649,26 @@ def main():
     '''
     logger.debug('Starting main()')
 
-    cmd_strs = parse_yaml('hammer-command-templates.yml')
+    cmd_strs = parse_yaml('cra-strings.yml')
+    resource = 'product'
+    action = 'update'
 
-    for filename in os.listdir('gpg'):
-        content = parse_yaml('gpg/%s' % filename)
-        info = make_str_tpl(cmd_strs, content['_type'], 'create')
-        logger.debug('Returned: %s', info)
+    for filename in os.listdir(resource):
+        content = parse_yaml('%s/%s' % (resource, filename))
+        if '_variant' in content:
+            variant = content['_variant']
+        else:
+            variant = None
+
         if 'items' in content:
             for item in content['items']:
-                print(info.substitute(item))
+                info = gen_cmd(strings=cmd_strs, resource=content['_type'],
+                               variant=variant, action=action, item=item)
+                print(info)
         else:
-            print(info.substitute(content))
-        # print(info.substitute(name=content['name'], label=content['label']))
-        # print(info.substitute(name=content['name'], label=content['label'],
-        #                       description=content['description']))
+            info = gen_cmd(strings=cmd_strs, resource=content['_type'],
+                           variant=variant, action=action, item=content)
+            print(info)
 
 
 #==============================================================================
