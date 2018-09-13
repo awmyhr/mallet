@@ -1,0 +1,14 @@
+# =============================================================================
+# Author:   awmyhr <awmyhr@gmail.com>
+# Revised:  20180913-114848
+# Created:  2018-09-12
+# =============================================================================
+---
+_type: 'gpg'
+items:
+  - _url: 'https://downloads.linux.hpe.com/SDR/repo/spp/GPG-KEY-SPP'
+    name: 'hp_tools_spp_gpg'
+    key: 'RPM-GPG-KEY-hp-tools-spp'
+  - _url: 'https://downloads.linux.hpe.com/SDR/repo/hpsum/GPG-KEY-hpsum'
+    name: 'hp_tools_sum_gpg'
+    key: 'RPM-GPG-KEY-hp-tools-sum'
