@@ -5,7 +5,6 @@
 # =============================================================================
 ---
 _type: 'repository-set'
-_rhsm: true
 items:
   - name: 'Red Hat Satellite Capsule 6.3 - Puppet 4 (for RHEL 7 Server) (RPMs)'
     product: 'Red Hat Satellite Capsule'

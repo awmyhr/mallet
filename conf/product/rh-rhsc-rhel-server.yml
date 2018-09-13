@@ -5,6 +5,6 @@
 # =============================================================================
 ---
 _type: 'product'
-_rhsm: true
+_variant: 'rhsm'
 name: 'Red Hat Software Collections for RHEL Server'
 syncPlan: 'Daily'

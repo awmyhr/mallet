@@ -5,7 +5,6 @@
 # =============================================================================
 ---
 _type: 'repository-set'
-_rhsm: true
 items:
   - name: 'Red Hat Ansible Engine 2 RPMs for Red Hat Enterprise Linux 7 Server'
     product: 'Red Hat Ansible Engine'

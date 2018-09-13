@@ -5,7 +5,6 @@
 # =============================================================================
 ---
 _type: 'repository-set'
-_rhsm: true
 items:
   # -- RHEL 7 Basic repos to enable
   - name: 'Red Hat Enterprise Linux 7 Server - Extras (RPMs)'

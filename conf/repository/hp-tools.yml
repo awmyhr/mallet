@@ -7,8 +7,6 @@
 #          https://downloads.linux.hpe.com/
 ---
 _type: 'repository'
-_rhsm: false
-product: 'HP Software Delivery Repository'
 items:
   # -- SPP for RHEL 7 repositories to create
   - name: 'Service Pack for ProLiant for RHEL 7 Server RPMs x86_64 7Server'

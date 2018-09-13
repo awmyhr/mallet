@@ -5,6 +5,6 @@
 # =============================================================================
 ---
 _type: 'product'
-_rhsm: true
+_variant: 'rhsm'
 name: 'Red Hat Enterprise Linux Server'
 syncPlan: 'Daily'

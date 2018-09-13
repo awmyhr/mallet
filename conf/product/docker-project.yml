@@ -5,7 +5,6 @@
 # =============================================================================
 ---
 _type: 'product'
-_rhsm: false
 name: 'Docker Project'
 description: 'The Docker Project repositories which are provided
               as a convenience and are *not* supported.'

@@ -7,7 +7,6 @@
 #          https://downloads.linux.hpe.com/
 ---
 _type: 'product'
-_rhsm: false
 name: 'HP Software Delivery Repository'
 description: 'The HP SDR which is provided
               as a convenience and is not directly supported.'

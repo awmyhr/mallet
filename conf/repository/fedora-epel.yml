@@ -5,7 +5,6 @@
 # =============================================================================
 ---
 _type: 'repository'
-_rhsm: false
 items:
   - name: 'Extra Packages for Enterprise Linux 7 Server RPMs x86_64'
     label: '7_server_rpms'

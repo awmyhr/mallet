@@ -5,7 +5,6 @@
 # =============================================================================
 ---
 _type: 'product'
-_rhsm: false
 name: 'Microsoft Packages for Linux'
 description: 'Includes various Microsoft OS  tools for Linux, such as
               PowerShell and are provided .NET SDK. These are provided
