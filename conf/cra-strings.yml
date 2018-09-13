@@ -89,6 +89,10 @@ resource:
     _description: 'Manage job templates'
   lifecycle-environment:
     _description: 'Manipulate lifecycle_environments on the server'
+    create: 'create --name "${name}" --label "${label}" \
+                    --description "${description}" --prior "${prior}"'
+    delete: 'delete --name "${name}"'
+    update: 'update --name "${name}" --description "${description}"'
   location:
     _description: 'Manipulate locations.'
     create: 'create --name "${name}" --parent-id "${parentId}" \
@@ -178,13 +182,15 @@ resource:
   repository-set:
     _description: 'Manipulate repository sets on the server'
     info: 'info --name "${name}" --product "${product}"'
-    create: '[[Not supported]]'
-    delete: '[[Not supported]]'
-    update: '[[Not supported]]'
-    disable: 'disable'
+    create: 'enable'
     enable: 'enable'
-    disable-noreleasever: 'disable'
+    delete: 'disable'
+    disable: 'disable'
+    update: '[[Not supported]]'
+    create-noreleasever: 'enable'
     enable-noreleasever: 'enable'
+    delete-noreleasever: 'disable'
+    disable-noreleasever: 'disable'
   role:
     _description: 'Manage user roles.'
   sc-param:
@@ -201,6 +207,13 @@ resource:
     _description: 'Manipulate subscriptions.'
   sync-plan:
     _description: 'Manipulate sync plans'
+    create: 'create --name "${name}" --enabled "${enabled}" \
+                    --sync-date "${syncDate}" --interval "${interval}" \
+                    --description "${description}"'
+    delete: 'delete --name "${name}"'
+    update: 'update --name "${name}" --enabled "${enabled}" \
+                    --sync-date "${syncDate}" --interval "${interval}" \
+                    --description "${description}"'
   task:
     _description: 'Tasks related actions.'
   template:

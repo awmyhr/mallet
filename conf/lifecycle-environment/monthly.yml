@@ -4,8 +4,8 @@
 # Created:  2018-08-31
 # =============================================================================
 ---
-type: 'lifecycle-environment'
-stages:
+_type: 'lifecycle-environment'
+items:
   - name: 'Monthly'
     label: 'monthly'
     description: 'One patch environment, updated monthly.'

@@ -4,7 +4,7 @@
 # Created:  2018-08-30
 # =============================================================================
 ---
-type: 'organization'
+_type: 'organization'
 name: 'Nixland'
 label: 'nixland'
 description: 'The place for all things *NIX.'

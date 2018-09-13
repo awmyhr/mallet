@@ -11,6 +11,6 @@ _rhsm: false
 name: 'HP Software Delivery Repository'
 description: 'The HP SDR which is provided
               as a convenience and is not directly supported.'
-sync-plan: 'Weekly'
+syncPlan: 'Weekly'
 label: 'hpsdr'
-gpg-key: null
+gpgKey: null

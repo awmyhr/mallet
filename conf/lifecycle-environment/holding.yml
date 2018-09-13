@@ -4,8 +4,8 @@
 # Created:  2018-08-31
 # =============================================================================
 ---
-type: 'lifecycle-environment'
-stages:
+_type: 'lifecycle-environment'
+items:
   - name: 'Holding'
     label: 'holding'
     description: 'Temporary holding lifecycle for hosts on the move.

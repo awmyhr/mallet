@@ -4,9 +4,9 @@
 # Created:  2018-08-29
 # =============================================================================
 ---
-type: 'sync-plan'
+_type: 'sync-plan'
 name: 'Daily'
 interval: 'daily'
-sync-date: '2018-09-02 01:30'
+syncDate: '2018-09-02 01:30'
 enabled: true
 description: 'Update repo data every day at 0130.'

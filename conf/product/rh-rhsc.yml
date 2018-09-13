@@ -7,4 +7,4 @@
 _type: 'product'
 _rhsm: true
 name: 'Red Hat Satellite Capsule'
-sync-plan: 'Daily'
+syncPlan: 'Daily'

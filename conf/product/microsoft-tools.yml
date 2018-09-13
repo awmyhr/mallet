@@ -10,6 +10,6 @@ name: 'Microsoft Packages for Linux'
 description: 'Includes various Microsoft OS  tools for Linux, such as
               PowerShell and are provided .NET SDK. These are provided
               as a convenience and are *not* supported.'
-sync-plan: 'Weekly'
+syncPlan: 'Weekly'
 label: 'microsoft'
-gpg-key: 'microsoft_tools_gpg'
+gpgKey: 'microsoft_tools_gpg'

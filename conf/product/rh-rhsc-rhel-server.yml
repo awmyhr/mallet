@@ -7,4 +7,4 @@
 _type: 'product'
 _rhsm: true
 name: 'Red Hat Software Collections for RHEL Server'
-sync-plan: 'Daily'
+syncPlan: 'Daily'

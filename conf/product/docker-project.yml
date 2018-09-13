@@ -9,6 +9,6 @@ _rhsm: false
 name: 'Docker Project'
 description: 'The Docker Project repositories which are provided
               as a convenience and are *not* supported.'
-sync-plan: 'Weekly'
+syncPlan: 'Weekly'
 label: 'docker'
-gpg-key: 'docker_project_gpg'
+gpgKey: 'docker_project_gpg'

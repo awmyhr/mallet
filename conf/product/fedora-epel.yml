@@ -10,6 +10,6 @@ name: 'Extra Packages for Enterprise Linux'
 description: 'Popular packages not provided by official repos which are provided
               as a convenience and are *not* supported. Note for EL 7 one
               should also enable Optional and Extras for pre-reqs.'
-sync-plan: 'Weekly'
+syncPlan: 'Weekly'
 label: 'epel'
-gpg-key: 'fedora_epel_gpg''
+gpgKey: 'fedora_epel_gpg''
