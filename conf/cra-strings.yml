@@ -91,10 +91,10 @@ resource:
     _description: 'Manipulate lifecycle_environments on the server'
   location:
     _description: 'Manipulate locations.'
-    create: 'create --name "${name}" --parent-id "${parent-id}" \
+    create: 'create --name "${name}" --parent-id "${parentId}" \
                     --description "${description}"'
     delete: 'delete --name "${name}"'
-    update: 'update --name "${name}" --parent-id "${parent-id}" \
+    update: 'update --name "${name}" --parent-id "${parentId}" \
                     --description "${description}"'
   medium:
     _description: 'Manipulate installation media.'
@@ -118,22 +118,22 @@ resource:
     _description: 'Manipulate products.'
     create: 'create --name "${name}" --label "${label}" \
                     --description "${description}" \
-                    --gpg-key "${gpg-key}" \
-                    --sync-plan "${sync-plan}"'
+                    --gpg-key "${gpgKey}" \
+                    --sync-plan "${syncPlan}"'
     delete: 'delete --name "${name}"'
     update: 'update --name "${name}" --label "${label}" \
                     --description "${description}" \
-                    --gpg-key "${gpg-key}" \
-                    --sync-plan "${sync-plan}"'
+                    --gpg-key "${gpgKey}" \
+                    --sync-plan "${syncPlan}"'
     create-nogpg: 'create --name "${name}" --label "${label}" \
                           --description "${description}" \
-                          --sync-plan "${sync-plan}"'
+                          --sync-plan "${syncPlan}"'
     update-nogpg: 'update --name "${name}" --label "${label}" \
                           --description "${description}" \
-                          --sync-plan "${sync-plan}"'
+                          --sync-plan "${syncPlan}"'
     create-rhsm: '[[Not supported]]'
     delete-rhsm: '[[Not supported]]'
-    update-rhsm: 'update --name "${name}" --sync-plan "${sync-plan}"'
+    update-rhsm: 'update --name "${name}" --sync-plan "${syncPlan}"'
   proxy:
     _description: 'Manipulate smart proxies.'
   puppet-class:
@@ -150,31 +150,31 @@ resource:
     _description: 'Manipulate repositories'
     create: 'create --name "${name}" --label "${label}" \
                     --product "${product}" \
-                    --checksum-type "${checksum-type}" \
-                    --content-type "${content-type}" \
-                    --download-policy "${download-policy}" \
-                    --gpg-key "${gpg-key}" \
-                    --mirror-on-sync "${mirror-on-sync}" --url "${url}"'
+                    --checksum-type "${checksumType}" \
+                    --content-type "${contentType}" \
+                    --download-policy "${downloadPolicy}" \
+                    --gpg-key "${gpgKey}" \
+                    --mirror-on-sync "${mirrorOnSync}" --url "${url}"'
     delete: 'delete --name "${name}" --product "${product}"'
     update: 'update --name "${name}" --label "${label}" \
                     --product "${product}" \
-                    --checksum-type "${checksum-type}" \
-                    --content-type "${content-type}" \
-                    --download-policy "${download-policy}" \
-                    --gpg-key "${gpg-key}" \
-                    --mirror-on-sync "${mirror-on-sync}" --url "${url}"'
+                    --checksum-type "${checksum-Type}" \
+                    --content-type "${contentType}" \
+                    --download-policy "${downloadPolicy}" \
+                    --gpg-key "${gpgKey}" \
+                    --mirror-on-sync "${mirrorOnSync}" --url "${url}"'
     create-nogpg: 'create --name "${name}" --label "${label}" \
                           --product "${product}" \
-                          --checksum-type "${checksum-type}" \
-                          --content-type "${content-type}" \
-                          --download-policy "${download-policy}" \
-                          --mirror-on-sync "${mirror-on-sync}" --url "${url}"'
+                          --checksum-type "${checksumType}" \
+                          --content-type "${contentType}" \
+                          --download-policy "${downloadPolicy}" \
+                          --mirror-on-sync "${mirrorOnSync}" --url "${url}"'
     update-nogpg: 'update --name "${name}" --label "${label}" \
                           --product "${product}" \
-                          --checksum-type "${checksum-type}" \
-                          --content-type "${content-type}" \
-                          --download-policy "${download-policy}" \
-                          --mirror-on-sync "${mirror-on-sync}" --url "${url}"'
+                          --checksum-type "${checksumType}" \
+                          --content-type "${contentType}" \
+                          --download-policy "${downloadPolicy}" \
+                          --mirror-on-sync "${mirrorOnSync}" --url "${url}"'
   repository-set:
     _description: 'Manipulate repository sets on the server'
     info: 'info --name "${name}" --product "${product}"'

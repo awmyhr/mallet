@@ -4,10 +4,10 @@
 #-- NOTE: Tabs and spaces do NOT mix!! '-tt' will flag violations as an error.
 #===============================================================================
 '''
-    :program:`Hammer Command Generator (hcg.py)`
+    :program:`Command Resource Action (cra.py)`
     ============================================================
 
-    In addition to the options listed in help output, :program:`hcg.py` includes
+    In addition to the options listed in help output, :program:`cra.py` includes
     the following 'hidden' optoins:
 
     .. option:: --help-rest
@@ -18,7 +18,7 @@
 
         Output debug-level information.
 
-    :synopsis: Generates hammer commands from yaml-formatted files.
+    :synopsis: Generates commands with paramater strings from yaml-formatted files.
 
     :copyright: 2017 awmyhr
     :license: Apache-2.0
@@ -68,7 +68,7 @@ if sys.version_info <= (2, 6):
 __version__ = '0.1.0-alpha' #: current version
 __revised__ = '20180912-172157' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
-__synopsis__ = 'Generates hammer commands from yaml-formatted files.'
+__synopsis__ = 'Generates commands with paramater strings from yaml-formatted files.'
 __description__ = '''TODO: CHANGEME
 '''
 #------------------------------------------------------------------------------
