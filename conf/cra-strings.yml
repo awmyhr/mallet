@@ -130,22 +130,13 @@ resource:
   product:
     _description: 'Manipulate products.'
     _optional:
-      - gpgKey
+      gpgKey: '--gpg-key "${gpgKey}"'
+      syncPlan: '--sync-plan "${syncPlan}"'
     create: 'create --name "${name}" --label "${label}"
-                    --description "${description}"
-                    --gpg-key "${gpgKey}"
-                    --sync-plan "${syncPlan}"'
+                    --description "${description}"'
     delete: 'delete --name "${name}"'
     update: 'update --name "${name}" --label "${label}"
-                    --description "${description}"
-                    --gpg-key "${gpgKey}"
-                    --sync-plan "${syncPlan}"'
-    create-nogpgKey: 'create --name "${name}" --label "${label}"
-                             --description "${description}"
-                             --sync-plan "${syncPlan}"'
-    update-nogpgKey: 'update --name "${name}" --label "${label}"
-                             --description "${description}"
-                             --sync-plan "${syncPlan}"'
+                    --description "${description}"'
   product-rhsm:
     _description: 'Manipulate RHSM products.'
     create: '[[Create not supported for ${name}]]'
@@ -166,58 +157,32 @@ resource:
   repository:
     _description: 'Manipulate repositories'
     _optional:
-      - gpgKey
+      gpgKey: '--gpg-key "${gpgKey}"'
+      checksumType: '--checksum-type "${checksumType}"'
     create: 'create --name "${name}" --label "${label}"
                     --product "${product}"
-                    --checksum-type "${checksumType}"
                     --content-type "${contentType}"
                     --download-policy "${downloadPolicy}"
-                    --gpg-key "${gpgKey}"
                     --mirror-on-sync "${mirrorOnSync}" --url "${url}"'
     delete: 'delete --name "${name}" --product "${product}"'
     update: 'update --name "${name}" --label "${label}"
                     --product "${product}"
-                    --checksum-type "${checksum-Type}"
                     --content-type "${contentType}"
                     --download-policy "${downloadPolicy}"
-                    --gpg-key "${gpgKey}"
                     --mirror-on-sync "${mirrorOnSync}" --url "${url}"'
-    create-nogpgKey: 'create --name "${name}" --label "${label}"
-                             --product "${product}"
-                             --checksum-type "${checksumType}"
-                             --content-type "${contentType}"
-                             --download-policy "${downloadPolicy}"
-                             --mirror-on-sync "${mirrorOnSync}" --url "${url}"'
-    update-nogpgKey: 'update --name "${name}" --label "${label}"
-                             --product "${product}"
-                             --checksum-type "${checksumType}"
-                             --content-type "${contentType}"
-                             --download-policy "${downloadPolicy}"
-                             --mirror-on-sync "${mirrorOnSync}" --url "${url}"'
   repository-set:
     # repository-set has no create/delete actions, however the effects of
     # enable/disable are functionally the same, so we 'alias' them...
     _description: 'Manipulate repository sets on the server'
     _optional:
-      - releasever
+      releasever: '--releasever "${releasever}"'
+      basearch: '--basearch "${basearch}"'
     info: 'info --name "${name}" --product "${product}"'
-    create: 'enable --name "${name}" --product "${product}"
-                    --basearch "${basearch}" --releasever "${releasever}"'
-    enable: 'enable --name "${name}" --product "${product}"
-                    --basearch "${basearch}" --releasever "${releasever}"'
-    delete: 'disable --name "${name}" --product "${product}"
-                    --basearch "${basearch}" --releasever "${releasever}"'
-    disable: 'disable --name "${name}" --product "${product}"
-                    --basearch "${basearch}" --releasever "${releasever}"'
+    create: 'enable --name "${name}" --product "${product}"'
+    enable: 'enable --name "${name}" --product "${product}"'
+    delete: 'disable --name "${name}" --product "${product}"'
+    disable: 'disable --name "${name}" --product "${product}"'
     update: '[[Not supported]]'
-    create-noreleasever: 'enable --name "${name}" --product "${product}"
-                                   --basearch "${basearch}"'
-    enable-noreleasever: 'enable --name "${name}" --product "${product}"
-                                   --basearch "${basearch}"'
-    delete-noreleasever: 'disable --name "${name}" --product "${product}"
-                                   --basearch "${basearch}"'
-    disable-noreleasever: 'disable --name "${name}" --product "${product}"
-                                   --basearch "${basearch}"'
   role:
     _description: 'Manage user roles.'
   sc-param:

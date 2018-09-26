@@ -65,7 +65,7 @@ if sys.version_info <= (2, 6):
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
-__version__ = '0.1.0-alpha' #: current version
+__version__ = '0.5.0-alpha' #: current version
 __revised__ = '20180912-172157' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Generates commands with paramater strings from yaml-formatted files.'
@@ -635,6 +635,7 @@ def parse_yaml(filename):
 def gen_cmd(strings, resource, variant, action, item):
     ''' working '''
     logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+    _options = ''
 
     if variant:
         resource_type = '%s-%s' % (resource, variant)
@@ -649,15 +650,17 @@ def gen_cmd(strings, resource, variant, action, item):
                     print(lookup_cmd)
         if '_optional' in strings['resource'][resource_type]:
             for option in strings['resource'][resource_type]['_optional']:
-                if option not in item or not item[option]:
-                    action = '%s-no%s' % (action, option)
+                if option in item and item[option]:
+                    _options += '%s ' % strings['resource'][resource_type]['_optional'][option]
 
         if action in strings['resource'][resource_type]:
-            str_tpl = Template('%s %s %s' % (strings['command'], resource,
-                                             strings['resource'][resource_type][action]))
+            str_tpl = Template(" ".join([strings['command'], resource,
+                                         strings['resource'][resource_type][action],
+                                         _options]))
         elif action in strings['resource']['_default']:
-            str_tpl = Template('%s %s %s' % (strings['command'], resource,
-                                             strings['resource']['_default'][action]))
+            str_tpl = Template(" ".join([strings['command'], resource,
+                                         strings['resource']['_default'][action],
+                                         _options]))
         else:
             #: Action not found.
             return '[[Action %s not found]]' % action
@@ -666,6 +669,17 @@ def gen_cmd(strings, resource, variant, action, item):
         return '[[Resource %s not found]]' % resource
     return str_tpl.substitute(item)
 
+
+#==============================================================================
+def iter_items(list_):
+    ''' iterate if given list with items, else just return list '''
+    logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+
+    if 'items' in list_:
+        for item in list_['items']:
+            yield item
+    else:
+        yield list_
 
 #==============================================================================
 def main():
@@ -678,19 +692,13 @@ def main():
 
     for filename in os.listdir(options.resource):
         content = parse_yaml('%s/%s' % (options.resource, filename))
-        if '_variant' in content:
-            variant = content['_variant']
-        else:
-            variant = None
+        if '_variant' not in content:
+            content['_variant'] = None
 
-        if 'items' in content:
-            for item in content['items']:
-                info = gen_cmd(strings=cmd_strs, resource=content['_type'],
-                               variant=variant, action=options.action, item=item)
-                print(info)
-        else:
+        for item in iter_items(content):
             info = gen_cmd(strings=cmd_strs, resource=content['_type'],
-                           variant=variant, action=options.action, item=content)
+                           variant=content['_variant'], action=options.action,
+                           item=item)
             print(info)
 
 
