@@ -10,7 +10,7 @@ items:
     label: '7_server_rpms'
     product: 'Microsoft Packages for Linux'
     contentType: 'yum'
-    checksumType: 'sha256'
+    checksumType: null
     downloadPolicy: 'on_demand'
     gpgKey: 'microsoft_tools_gpg'
     mirrorOnSync: 'false'
@@ -19,7 +19,7 @@ items:
     label: '7_4_rpms'
     product: 'Microsoft Packages for Linux'
     contentType: 'yum'
-    checksumType: 'sha256'
+    checksumType: null
     downloadPolicy: 'on_demand'
     gpgKey: 'microsoft_tools_gpg'
     mirrorOnSync: 'false'

@@ -9,7 +9,7 @@ items:
   - name: 'Docker Engine for Enterprise Linux 7 Server RPMs'
     label: '7_server_rpms'
     product: 'Docker Project'
-    checksumType: 'sha256'
+    checksumType: null
     contentType: 'yum'
     downloadPolicy: 'on_demand'
     gpgKey: 'docker_project_gpg'

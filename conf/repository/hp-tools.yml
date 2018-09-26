@@ -13,7 +13,7 @@ items:
     label: 'spp_7_server'
     product: 'HP Software Delivery Repository'
     contentType: 'yum'
-    checksumType: 'sha256'
+    checksumType: null
     downloadPolicy: 'on_demand'
     gpgKey: 'hp_tools_spp_gpg'
     mirrorOnSync: 'false'
@@ -22,7 +22,7 @@ items:
     label: 'spp_7_5'
     product: 'HP Software Delivery Repository'
     contentType: 'yum'
-    checksumType: 'sha256'
+    checksumType: null
     downloadPolicy: 'on_demand'
     gpgKey: 'hp_tools_spp_gpg'
     mirrorOnSync: 'false'
@@ -31,7 +31,7 @@ items:
     label: 'spp_7_4'
     product: 'HP Software Delivery Repository'
     contentType: 'yum'
-    checksumType: 'sha256'
+    checksumType: null
     downloadPolicy: 'on_demand'
     gpgKey: 'hp_tools_spp_gpg'
     mirrorOnSync: 'false'
@@ -41,7 +41,7 @@ items:
     label: 'sum_7_server'
     product: 'HP Software Delivery Repository'
     contentType: 'yum'
-    checksumType: 'sha256'
+    checksumType: null
     downloadPolicy: 'on_demand'
     gpgKey: 'hp_tools_sum_gpg'
     mirrorOnSync: 'false'
