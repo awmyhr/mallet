@@ -66,7 +66,7 @@ if sys.version_info <= (2, 6):
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
 __version__ = '0.5.0-alpha' #: current version
-__revised__ = '20180912-172157' #: date of most recent revision
+__revised__ = '20180926-122529' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Generates commands with paramater strings from yaml-formatted files.'
 __description__ = '''TODO: CHANGEME
@@ -635,12 +635,11 @@ def parse_yaml(filename):
 def gen_cmd(strings, resource, variant, action, item):
     ''' working '''
     logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
-    _options = ''
+    option_string = ''
+    resource_type = resource
 
     if variant:
         resource_type = '%s-%s' % (resource, variant)
-    else:
-        resource_type = resource
 
     if resource_type in strings['resource']:
         if '_lookup' in strings['resource'][resource_type]:
@@ -651,19 +650,17 @@ def gen_cmd(strings, resource, variant, action, item):
         if '_optional' in strings['resource'][resource_type]:
             for option in strings['resource'][resource_type]['_optional']:
                 if option in item and item[option]:
-                    _options += '%s ' % strings['resource'][resource_type]['_optional'][option]
+                    option_string += '%s ' % strings['resource'][resource_type]['_optional'][option]
 
         if action in strings['resource'][resource_type]:
-            str_tpl = Template(" ".join([strings['command'], resource,
-                                         strings['resource'][resource_type][action],
-                                         _options]))
+            action_string = strings['resource'][resource_type][action]
         elif action in strings['resource']['_default']:
-            str_tpl = Template(" ".join([strings['command'], resource,
-                                         strings['resource']['_default'][action],
-                                         _options]))
+            action_string = strings['resource']['_default'][action]
         else:
             #: Action not found.
             return '[[Action %s not found]]' % action
+        str_tpl = Template(" ".join([strings['command'], resource,
+                                     action_string, option_string]))
     else:
         #: Resource not found.
         return '[[Resource %s not found]]' % resource
