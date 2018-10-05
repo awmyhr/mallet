@@ -4,7 +4,7 @@
 #------------------------------------------------------------------------------
 # name:    Satellite 6 Notes (satellite6Notes)
 # author:  awmyhr@gmail.com
-# revised: 20180912-141145
+# revised: 20181005-093709
 # created: 2016-12-07
 #------------------------------------------------------------------------------
 #-- NOTE: This document was compiled running Satellite 6.2.4 on RHEL 7.3
@@ -87,6 +87,7 @@ vg02 backup            /backup            750G 0755 root:root
 vg01 var.cache.pulp    /var/cache/pulp     20G 0755 apache:apache
 vg01 var.lib.mongodb   /var/lib/mongodb   100G 0755 mongodb:mongodb
 vg01 var.lib.pulp      /var/lib/pulp      500G 0755 apache:apache
+vg01 var.spool.squid   /var/spool/squid     5G 0750 squid:squid
 
 vg02 backup            /backup            750G 0755 root:root
 #-- space needed for backup
