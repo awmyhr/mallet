@@ -88,12 +88,12 @@ if sys.version_info <= (2, 6):
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
 __version__ = '2.0.0-alpha' #: current version
-__revised__ = '20181212-141437' #: date of most recent revision
+__revised__ = '20181212-153943' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Tool for interacting with Satellite 6 via REST API'
 __description__ = '''Allows the user to perfrom a variety of actions on a
 Satellite 6 server from any command line without hammer.
-Currently available topics and relevant actions are:
+Currently available tasks and relevant actions are:
  - collection [Host Collections] (get, add, remove, lookup, show)
  - lce [Life-Cycle Environment]  (get, set, lookup, show)
  - location [Location]           (get, set, lookup, show)
@@ -643,16 +643,17 @@ class RunOptions(object):
                              __revised__, __version__,
                              __cononical_name__, __project_name__, __project_home__
                             )
-        usage_string = ('%s [options] <topic> get <hostname>\n'
-                        '  or:  %s [options] <topic> <add|remove|set> <hostname> <target>\n'
-                        '  or:  %s [options] <topic> lookup <target>\n'
-                        '  or:  %s [options] <topic> show') % (
+        usage_string = ('%s [options] <task> get <hostname>\n'
+                        '  or:  %s [options] <task> <add|remove|set> <hostname> <target>\n'
+                        '  or:  %s [options] <task> lookup <target>\n'
+                        '  or:  %s [options] <task> show') % (
                             __basename__, __basename__, __basename__, __basename__)
         version_string = '%s (%s) %s' % (__cononical_name__, __project_name__, __version__)
         if __gnu_version__:
             version_string += '\nCopyright %s\nLicense %s\n' % (__copyright__, __license__)
         parser = _ModOptionParser(version=version_string, usage=usage_string,
                                   description=description_string, epilog=epilog_string)
+        self.parser = parser
         #-- TODO: Add options, also set _default and @property (if needed).
         #-- Visible Options
         #   These can *not* be set in a config file
@@ -1749,12 +1750,233 @@ class Sat6Object(object):
 
 
 #==============================================================================
+def task_collection(sat6_session, verb, *args):
+    ''' Manipulate host collections '''
+    logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+    if args:
+        logger.debug('With verb: %s; and args: %s' % (verb, args))
+
+    return True
+
+
+#==============================================================================
+def task_hostlist(sat6_session):
+    ''' Print host list '''
+    logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+
+    print('Retrieving host list. This could take quite some time...')
+
+    for host in sat6_session.get_host_list():
+        if 'content_facet_attributes' in host:
+            print("ID: %6s  Name: %35s  LCE: %s" %
+                  (host['id'], host['name'],
+                   host['content_facet_attributes']['lifecycle_environment']['name']))
+        else:
+            print("ID: %6s  Name: %35s" % (host['id'], host['name']))
+    return True
+
+#==============================================================================
+def task_lce(sat6_session, verb, *args):
+    ''' Manipulate Life-Cycle Environments '''
+    logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+    if args:
+        logger.debug('With verb: %s; and args: %s' % (verb, args))
+
+    if verb == 'get':
+        logger.debug('Was asked to get.')
+        if len(args) == 1:
+            host = sat6_session.get_host(args[0])
+            if host:
+                if 'content_facet_attributes' in host:
+                    print('%s' % host['content_facet_attributes']['lifecycle_environment']['name'])
+                else:
+                    raise RuntimeError('%s has no lce', host['name'])
+            else:
+                raise RuntimeError('Host %s not found.', args[0])
+        else:
+            options.parser.error('Action get requires a hostname and nothing else.')
+    elif verb == 'set':
+        logger.debug('Was asked to set.')
+        if len(args) == 2:
+            new_lce = sat6_session.lookup_lce_name(args[1])
+            if new_lce is None:
+                raise RuntimeError('"%s" does not exist in org %s.',
+                                   args[1], sat6_session.org_id)
+            host = sat6_session.get_host(args[0])
+            if host:
+                if sat6_session.set_host_lce(host, new_lce):
+                    print('%s: %s' % (host['name'], sat6_session.results['msg']))
+                else:
+                    raise RuntimeError('%s: %s', host['name'], sat6_session.results['msg'])
+            else:
+                raise RuntimeError('Host %s not found.' % args[0])
+        else:
+            options.parser.error('Action set requires a hostname and life-cycle.')
+    elif verb == 'lookup':
+        logger.debug('Was asked to lookup.')
+        if len(args) == 1:
+            lce = sat6_session.lookup_lce_name(args[0])
+            if lce:
+                print(lce)
+            else:
+                raise RuntimeError('"%s" does not translate to a valid LCE.', args[0])
+        else:
+            options.parser.error('Action lookup requires a life-cycle and nothing else.')
+    elif verb == 'show':
+        logger.debug('Was asked to show.')
+        if len(args) == 0:
+            _ = sat6_session.lookup_lce_name('qa')
+            print('%-35s: %s' % ('Possible Values', 'Target LCE'))
+            print('=' * 70)
+            for key, value in sorted(sat6_session.lutables['lce'].iteritems(),
+                                     key=lambda (k, v): (v, k)):
+                if not key.startswith('_'):
+                    print('\x1b[38;2;100;149;237m%-35s: %s\x1b[0m' % (key, value))
+            print('=' * 70)
+            print('Note: The values are case insensitive.')
+        else:
+            options.parser.error('Action show accepts no arguments.')
+    else:
+        options.parser.error('Unknown action: %s' % verb)
+    return True
+
+
+#==============================================================================
+def task_location(sat6_session, verb, *args):
+    ''' Manipulate Locations '''
+    logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+    if args:
+        logger.debug('With verb: %s; and args: %s' % (verb, args))
+
+    if verb == 'get':
+        logger.debug('Was asked to get.')
+        if len(args) == 1:
+            host = sat6_session.get_host(args[0])
+            if host:
+                if 'location_name' in host:
+                    print('%s' % host['location_name'])
+                else:
+                    raise RuntimeError('%s has no location' % host['name'])
+            else:
+                raise RuntimeError('Host %s not found.' % args[0])
+        else:
+            options.parser.error('Action get requires a hostname and nothing else.')
+    elif verb == 'set':
+        logger.debug('Was asked to set.')
+        if len(args) == 2:
+            new_loc = sat6_session.get_loc(args[1])
+            if new_loc is None:
+                raise RuntimeError('"%s" does not exist in org %s.',
+                                   args[1], sat6_session.org_id)
+            host = sat6_session.get_host(args[0])
+            if host:
+                if sat6_session.set_host_loc(host, new_loc):
+                    print('%s: %s' % (host['name'], sat6_session.results['msg']))
+                else:
+                    raise RuntimeError('%s: %s', host['name'], sat6_session.results['msg'])
+            else:
+                raise RuntimeError('Host %s not found.' % args[0])
+        else:
+            options.parser.error('Action set requires a hostname and location.')
+    elif verb == 'lookup':
+        logger.debug('Was asked to lookup.')
+        if len(args) == 1:
+            loc = sat6_session.get_loc(args[0])
+            if loc:
+                print(loc['title'])
+            else:
+                raise RuntimeError('"%s" does not translate to a valid LCE.', args[0])
+        else:
+            options.parser.error('Action lookup requires a location and nothing else.')
+    elif verb == 'show':
+        logger.debug('Was asked to show.')
+        if len(args) == 0:
+            print('%-35s: %s' % ('Title', 'Parent'))
+            print('=' * 70)
+            for loc in sat6_session.get_loc_list():
+                if loc['parent_id'] is not None:
+                    parent = sat6_session.get_loc(loc['parent_id'])['title']
+                else:
+                    parent = '[None]'
+                print('\x1b[38;2;100;149;237m%-35s: %s\x1b[0m' % (loc['title'], parent))
+            print('=' * 70)
+        else:
+            options.parser.error('Action show accepts no arguments.')
+    else:
+        options.parser.error('Unknown action: %s' % verb)
+    return True
+
+
+#==============================================================================
+def task__experiment(sat6_session, *args):
+    ''' Playground for future features '''
+    logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+    if args:
+        logger.debug('With args: %s' % args)
+
+    return True
+
+
+#==============================================================================
+def task__test(sat6_session, *args):
+    ''' Runs a test suite '''
+    logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+    if args:
+        logger.debug('With args: %s' % args)
+
+    print('Content Views')
+    for cview in sat6_session.get_cv_list():
+        print("  ID: %3s  Name: %35s  Label: %s" % (cview['id'], cview['name'], cview['label']))
+    print('-------------------')
+
+    print('Host Collections')
+    for hcollec in sat6_session.get_hc_list():
+        print("  ID: %3s  Name: %35s  Hosts: %s" % (hcollec['id'], hcollec['name'], hcollec['total_hosts']))
+    print('-------------------')
+
+    print('Life-Cycle Environments')
+    for lce in sat6_session.get_org_lce_list():
+        print("  ID: %3s  Name: %35s  Title: %s" % (lce['id'], lce['name'], lce['label']))
+    print('-------------------')
+
+    print('Locations')
+    for loc in sat6_session.get_loc_list():
+        print("  ID: %3s  Name: %35s  Title: %s" % (loc['id'], loc['name'], loc['title']))
+    print('-------------------')
+
+    print('Organizations')
+    for org in sat6_session.get_org_list():
+        print("  ID: %3s  Name: %35s  Label: %s" % (org['id'], org['name'], org['label']))
+    print('-------------------')
+
+    return True
+
+
+#==============================================================================
 def main():
     ''' This is where the action takes place
         We expect options and logger to be global
     '''
     logger.debug('Starting main()')
-    #-- TODO: Do something more interesting here...
+    sat6_session = Sat6Object(server=options.server, username=options.username,
+                              password=options.password, authkey=options.authkey,
+                              org_id=options.org_id, org_name=options.org_name,
+                              insecure=options.insecure)
+
+    if options.args[0] == 'collection':
+        task_collection(sat6_session, options.args[1], *options.args[2:])
+    elif options.args[0] == 'hostlist':
+        task_hostlist(sat6_session)
+    elif options.args[0] == 'lce':
+        task_lce(sat6_session, options.args[1], *options.args[2:])
+    elif options.args[0] == 'location':
+        task_location(sat6_session, options.args[1], *options.args[2:])
+    elif options.args[0] == '_experiment':
+        task__experiment(sat6_session, *options.args[1:])
+    elif options.args[0] == '_test':
+        task__test(sat6_session, *options.args[1:])
+    else:
+        options.parser.error('Unknown task: %s' % options.args[0])
 
 
 #==============================================================================
@@ -1766,6 +1988,12 @@ if __name__ == '__main__':
     if __require_root__ and os.getegid() != 0:
         logger.error('Must be run as root.')
         sys.exit(77)
+
+    #-- This will disable insecure https warnings (amongst others)
+    try:
+        logging.captureWarnings(True)
+    except AttributeError:
+        logger.warn('Sorry, unable to suppress SSL warnings.')
 
     #-- NOTE: "except Exception as variable:" syntax was added in 2.6, previously
     #         one would use "except Exception, variable:", but that is not
