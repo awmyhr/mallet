@@ -88,7 +88,7 @@ if sys.version_info <= (2, 6):
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
 __version__ = '2.0.0-alpha' #: current version
-__revised__ = '20181212-153943' #: date of most recent revision
+__revised__ = '20181212-155824' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Tool for interacting with Satellite 6 via REST API'
 __description__ = '''Allows the user to perfrom a variety of actions on a
@@ -1742,11 +1742,11 @@ class Sat6Object(object):
                 self.results['return'] = results
                 self.results['success'] = False
                 self.results['msg'] = 'Host not removed from collection, cause unknown.'
-                return True
+                return False
         self.results['return'] = host
         self.results['success'] = True
         self.results['msg'] = 'Host successfully removed from collection %s.' % (collection['name'])
-        return False
+        return True
 
 
 #==============================================================================
@@ -1756,6 +1756,76 @@ def task_collection(sat6_session, verb, *args):
     if args:
         logger.debug('With verb: %s; and args: %s' % (verb, args))
 
+    if verb == 'get':
+        logger.debug('Was asked to get.')
+        if len(args) == 1:
+            host = sat6_session.get_host(args[0])
+            if host:
+                if 'host_collections' in host:
+                    for hcollec in host['host_collections']:
+                        print('%s' % hcollec['name'])
+                else:
+                    raise RuntimeError('%s has no host collections' % host['name'])
+            else:
+                raise RuntimeError('Host %s not found.' % args[0])
+        else:
+            options.parser.error('Action get requires a hostname and nothing else.')
+    elif verb == 'add':
+        logger.debug('Was asked to add.')
+        if len(args) == 2:
+            new_hc = sat6_session.get_hc(args[1])
+            if new_hc is None:
+                raise RuntimeError('"%s" does not exist in org %s.',
+                                   args[1], sat6_session.org_id)
+            host = sat6_session.get_host(args[0])
+            if host:
+                if sat6_session.add_host_hc(host, new_hc):
+                    print('%s: %s' % (host['name'], sat6_session.results['msg']))
+                else:
+                    raise RuntimeError('%s: %s', host['name'], sat6_session.results['msg'])
+            else:
+                raise RuntimeError('Host %s not found.' % args[0])
+        else:
+            options.parser.error('Action add requires a hostname and host collection.')
+    elif verb == 'remove':
+        logger.debug('Was asked to remove.')
+        if len(args) == 2:
+            new_hc = sat6_session.get_hc(args[1])
+            if new_hc is None:
+                raise RuntimeError('"%s" does not exist in org %s.',
+                                   args[1], sat6_session.org_id)
+            host = sat6_session.get_host(args[0])
+            if host:
+                if sat6_session.remove_host_hc(host, new_hc):
+                    print('%s: %s' % (host['name'], sat6_session.results['msg']))
+                else:
+                    raise RuntimeError('%s: %s', host['name'], sat6_session.results['msg'])
+            else:
+                raise RuntimeError('Host %s not found.' % args[0])
+        else:
+            options.parser.error('Action remove requires a hostname and host collection.')
+    elif verb == 'lookup':
+        logger.debug('Was asked to lookup.')
+        if len(args) == 1:
+            hcollec = sat6_session.get_hc(args[0])
+            if hcollec:
+                print(hcollec['name'])
+            else:
+                raise RuntimeError('"%s" does not translate to a valid LCE.', args[0])
+        else:
+            options.parser.error('Action lookup requires a host collection and nothing else.')
+    elif verb == 'show':
+        logger.debug('Was asked to show.')
+        if len(args) == 0:
+            print('%-35s: %s' % ('Name', 'Host count'))
+            print('=' * 70)
+            for hcollec in sat6_session.get_hc_list():
+                print('\x1b[38;2;100;149;237m%-35s: %s\x1b[0m' % (hcollec['name'], hcollec['total_hosts']))
+            print('=' * 70)
+        else:
+            options.parser.error('Action show accepts no arguments.')
+    else:
+        options.parser.error('Unknown action: %s' % verb)
     return True
 
 
@@ -1913,6 +1983,16 @@ def task__experiment(sat6_session, *args):
     logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
     if args:
         logger.debug('With args: %s' % args)
+
+    # my_hc = sat6_session.get_hc('et_dse_linux')
+    # print(sat6_session.results)
+    # print(my_hc['id'])
+
+    # sat6_session.add_host_hc('lxrsvutilp03', 'et_dse_linux_test')
+    # print(sat6_session.results['msg'])
+
+    # sat6_session.remove_host_hc('lxrsvutilp03', 'et_dse_linux_test')
+    # print(sat6_session.results['msg'])
 
     return True
 
