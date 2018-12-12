@@ -45,7 +45,29 @@ import os           #: Misc. OS interfaces
 import sys          #: System-specific parameters & functions
 # import traceback    #: Print/retrieve a stack traceback
 #==============================================================================
-#-- Third Party Imports
+#-- Additional Imports
+#==============================================================================
+#-- Imports needed for Sat6Object
+try:
+    import base64
+except ImportError:
+    raise ImportError('The python-base64 module is required.')
+try:
+    import requests
+except ImportError:
+    raise ImportError('The python-requests module is required.')
+try:
+    import json
+except ImportError:
+    raise ImportError('The python-json module is required.')
+try:
+    from urllib import urlencode
+except ImportError:
+    raise ImportError('The python-urllib module is required.')
+try:
+    from cookielib import LWPCookieJar
+except ImportError:
+    raise ImportError('The python-cookielib module is required.')
 #==============================================================================
 #-- Require a minimum Python version
 if sys.version_info <= (2, 6):
@@ -64,7 +86,7 @@ if sys.version_info <= (2, 6):
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
 __version__ = '0.1.0-alpha' #: current version
-__revised__ = '20181212-131103' #: date of most recent revision
+__revised__ = '20181212-131535' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'TODO: CHANGEME'
 __description__ = '''TODO: CHANGEME
@@ -591,6 +613,1029 @@ class RunOptions(object):
         #-- Put any option validation here...
 
         return parsed_opts, parsed_args
+
+
+#==============================================================================
+class Sat6Object(object):
+    ''' Class for interacting with Satellite 6 API '''
+    __version = '1.5.0'
+    #-- Max number of items returned per page.
+    #   Though we allow this to be configured, KB articles say 100 is the
+    #   optimal value to avoid timeouts.
+    per_page = 100
+    lookup_tables = {'lce': 'lut/lce_name.json'}
+
+    def __init__(self, server=None, username=None, password=None,
+                 authkey=None, org_id=None, org_name=None, insecure=False):
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        logger.debug('Initiallizing Sat6Object version %s.', self.__version)
+        if authkey is None:
+            if username is None or password is None:
+                raise RuntimeError('Must provide either authkey or username/password pair.')
+            logger.debug('Creating authkey for user: %s', username)
+            self.username = username
+            self.authkey = base64.b64encode('%s:%s' % (username, password)).strip()
+        else:
+            self.authkey = authkey
+        if server is None:
+            raise RuntimeError('Must provide Satellite server name.')
+        self.server = server
+        self.url = 'https://%s' % server
+        self.pub = '%s/pub' % self.url
+        self.foreman = '%s/api/v2' % self.url
+        self.katello = '%s/katello/api' % self.url
+        self.insecure = insecure
+        self.connection = self._new_connection()
+        self.results = {"success": None, "msg": None, "return": None}
+        self.lutables = {}
+        self.verbose = False
+        if org_name is not None:
+            self.org_name = org_name
+            self.org_id = self.get_org(self.org_name)['id']
+        elif org_id is not None:
+            self.org_id = org_id
+        else:
+            self.org_id = 1
+
+    def __del__(self):
+        self.connection.cookies.save(ignore_discard=True)
+
+    #===============================================================================
+    #-- The following originates from a  StackOverflow thread titled
+    #   "Check if a string matches an IP address pattern in Python".
+    #   We are only interested in valid IPv4 addresses.
+    #===============================================================================
+    # https://stackoverflow.com/questions/3462784/check-if-a-string-matches-an-ip-address-pattern-in-python
+    #===============================================================================
+    @classmethod
+    def _is_valid_ipv4(cls, ipaddr):
+        '''Checks if passed paramater is a valid IPv4 address'''
+        parts = ipaddr.split('.')
+        if len(parts) != 4:
+            return False
+        try:
+            return all(0 <= int(p) < 256 for p in parts)
+        except ValueError:
+            return False
+
+    def _get_rest_call(self, url, params=None, data=None):
+        ''' Call a REST API URL using GET.
+
+        Args:
+            session_obj (obj): Session object
+            url (str):         URL of API
+            params (dict):     Dict of params to pass to Requests.get
+
+        Returns:
+            Results of API call in a dict
+
+        '''
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+
+        logger.debug('Calling URL: %s', url)
+        logger.debug('With Headers: %s', self.connection.headers)
+        if params is not None:
+            logger.debug('With params: %s', params)
+        if data is not None:
+            logger.debug('With data: %s', data)
+            data = json.dumps(data)
+
+        try:
+            results = self.connection.get(url, params=params, data=data)
+            logger.debug('Final URL: %s', results.url)
+            logger.debug('Return Headers: %s', results.headers)
+            logger.debug('Status Code: %s', results.status_code)
+            if self.verbose:
+                logger.debug('Raw return: %s', results.raw)
+        except requests.ConnectionError as error:
+            logger.debug('Caught Requests Connection Error.')
+            error.message = '[ConnectionError]: %s' % (error.message) #: pylint: disable=no-member
+            raise error
+        except requests.HTTPError as error:
+            logger.debug('Caught Requests HTTP Error.')
+            error.message = '[HTTPError]: %s' % (error.message) #: pylint: disable=no-member
+            raise error
+        except requests.Timeout as error:
+            logger.debug('Caught Requests Timeout.')
+            error.message = '[Timeout]: %s' % (error.message) #: pylint: disable=no-member
+            raise error
+        except Exception as error:
+            logger.debug('Caught Requests Exception.')
+            error.message = '[Requests]: REST call failed: %s' % (error.message) #: pylint: disable=no-member
+            raise error
+        results.raise_for_status()
+
+        rjson = results.json()
+        if self.verbose:
+            logger.debug('Results: %s', rjson)
+
+        if rjson.get('error'):
+            logger.debug('Requests API call returned error.')
+            raise IOError(127, '[Requests]: API call failed: %s' % (rjson['error']['message']))
+        return rjson
+
+    def _put_rest_call(self, url, data=None):
+        ''' Call a REST API URL using PUT .
+
+        Args:
+            session_obj (obj): Session object
+            url (str):         URL of API
+            data (dict):       Dict of data to pass to Requests.put
+
+        Returns:
+            Results of API call in a dict
+
+        '''
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+
+        logger.debug('Calling URL: %s', url)
+        if data is not None:
+            logger.debug('With data: %s', data)
+            data = json.dumps(data)
+
+        try:
+            results = self.connection.put(url, data=data)
+            logger.debug('Final URL: %s', results.url)
+            logger.debug('Return Headers: %s', results.headers)
+            logger.debug('Status Code: %s', results.status_code)
+            if self.verbose:
+                logger.debug('Raw results: %s', results.raw)
+        except requests.ConnectionError as error:
+            logger.debug('Caught Requests Connection Error.')
+            error.message = '[ConnectionError]: %s' % (error.message) #: pylint: disable=no-member
+            raise error
+        except requests.HTTPError as error:
+            logger.debug('Caught Requests HTTP Error.')
+            error.message = '[HTTPError]: %s' % (error.message) #: pylint: disable=no-member
+            raise error
+        except requests.Timeout as error:
+            logger.debug('Caught Requests Timeout.')
+            error.message = '[Timeout]: %s' % (error.message) #: pylint: disable=no-member
+            raise error
+        except Exception as error:
+            logger.debug('Caught Requests Exception.')
+            error.message = '[Requests]: REST call failed: %s' % (error.message) #: pylint: disable=no-member
+            raise error
+        results.raise_for_status()
+
+        rjson = results.json()
+        if self.verbose:
+            logger.debug('Results: %s', rjson)
+
+        if 'error' in rjson:
+            logger.debug('Requests API call returned error.')
+            raise IOError(127, '[Requests]: API call failed: %s' % (rjson['error']['message']))
+        return rjson
+
+    def _post_rest_call(self, url, data=None):
+        ''' Call a REST API URL using POST .
+
+        Args:
+            session_obj (obj): Session object
+            url (str):         URL of API
+            data (dict):       Dict of data to pass to Requests.put
+
+        Returns:
+            Results of API call in a dict
+
+        '''
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+
+        logger.debug('Calling URL: %s', url)
+        if data is not None:
+            logger.debug('With data: %s', data)
+            data = json.dumps(data)
+
+        try:
+            results = self.connection.post(url, data=data)
+            logger.debug('Final URL: %s', results.url)
+            logger.debug('Return Headers: %s', results.headers)
+            logger.debug('Status Code: %s', results.status_code)
+            if self.verbose:
+                logger.debug('Raw results: %s', results.raw)
+        except requests.ConnectionError as error:
+            logger.debug('Caught Requests Connection Error.')
+            error.message = '[ConnectionError]: %s' % (error.message) #: pylint: disable=no-member
+            raise error
+        except requests.HTTPError as error:
+            logger.debug('Caught Requests HTTP Error.')
+            error.message = '[HTTPError]: %s' % (error.message) #: pylint: disable=no-member
+            raise error
+        except requests.Timeout as error:
+            logger.debug('Caught Requests Timeout.')
+            error.message = '[Timeout]: %s' % (error.message) #: pylint: disable=no-member
+            raise error
+        except Exception as error:
+            logger.debug('Caught Requests Exception.')
+            error.message = '[Requests]: REST call failed: %s' % (error.message) #: pylint: disable=no-member
+            raise error
+        results.raise_for_status()
+
+        rjson = results.json()
+        if self.verbose:
+            logger.debug('Results: %s', rjson)
+
+        if 'error' in rjson:
+            logger.debug('Requests API call returned error.')
+            raise IOError(127, '[Requests]: API call failed: %s' % (rjson['error']['message']))
+        return rjson
+
+    def _new_connection(self, authkey=None, insecure=None, token=None, client_id=None):
+        ''' Create a Request session object
+
+        Args:
+            authkey (str): Username
+
+        Returns:
+            Requests session object.
+
+        '''
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        if authkey is None:
+            authkey = self.authkey
+        if token is None:
+            authorization = 'Basic %s' % authkey
+        else:
+            authorization = 'Bearer %s' % token['access_token']
+        if insecure is None:
+            verify = not bool(self.insecure)
+        else:
+            verify = not bool(insecure)
+        connection = requests.Session()
+        connection.headers = {
+            'x-ibm-client-id': client_id,
+            'content-type': 'application/json',
+            'authorization': authorization,
+            'accept': 'application/json',
+            'cache-control': 'no-cache'
+        }
+        logger.debug('Headers set: %s', connection.headers)
+        connection.verify = verify
+        connection.cookies = LWPCookieJar(os.getenv("HOME") + "/.sat6_api_session")
+        try:
+            connection.cookies.load(ignore_discard=True)
+        except IOError:
+            pass
+
+        return connection
+
+    # def _get_cookies(self):
+    #     ''' Handle session cookie '''
+    #     logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+    #     self.cookies = LWPCookieJar(os.getenv("HOME") + "/.sat6_api_session")
+    #     try:
+    #         self.cookies.load(ignore_discard=True)
+    #     except IOError:
+    #         pass
+    #     return self.cookies
+
+    def lookup_lce_name(self, lce_tag):
+        ''' Searches for and returns LCE from Satellite 6.
+            This is a highly-custom routine which depends on a lookup-table
+            existing as a static json file in the Satellites pub directory.
+            The json file is a simple, manually maintained list of possible
+            search phrases mapped to actual LCE names.
+
+        Args:
+            lce_tag (str):        Name of LCE find.
+
+        Returns:
+            Satellite 6 name of LCE.
+
+        '''
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        logger.debug('Looking for lce: %s', lce_tag)
+
+        if 'lce' not in self.lutables:
+            logger.debug('First time calling function, loading table.')
+            self.lutables['lce'] = self._get_rest_call('%s/%s' % (self.pub,
+                                                                  self.lookup_tables['lce']))
+            if '_revision' in self.lutables['lce']:
+                logger.debug('LCE Table revision: %s', self.lutables['lce']['_revision'])
+            else:
+                logger.debug('Warning: LCE Table did not have _revision tag.')
+        return self.lutables['lce'].get(lce_tag.lower(), None)
+
+    def get_host(self, hostname):
+        ''' Searches for and returns info for a Satellite 6 host.
+
+        Args:
+            hostname (str):        Name of host to find.
+
+        Returns:
+            Info for a host (dict). Of particular value may be
+            return['certname']
+            return['content_facet_attributes']['content_view']['id']
+            return['content_facet_attributes']['content_view']['name']
+            return['content_facet_attributes']['lifecycle_environment']['id']
+            return['content_facet_attributes']['lifecycle_environment']['name']
+            return['content_host_id']
+            return['id']
+            return['subscription_status']
+            return['organization_name']
+            return['organization_id']
+
+        '''
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        logger.debug('Looking for host: %s', hostname)
+        self.results = {"success": None, "msg": None, "return": None}
+        if hostname is None:
+            self.results['success'] = False
+            self.results['msg'] = 'Error: Hostname passed was type None.'
+        else:
+            if isinstance(hostname, int):
+                results = self._get_rest_call('%s/hosts/%s' % (self.foreman, hostname))
+                if 'error' in results:
+                    #-- This is not likely to execute, as if the host ID is not
+                    #   found a 404 is thrown, which is caught by the exception
+                    #   handling mechanism, and the program will bomb out.
+                    #   Not sure I want to change that...
+                    self.results['success'] = False
+                    self.results['msg'] = 'Warning: No host ID %s.' % hostname
+                    self.results['return'] = results
+                else:
+                    self.results['success'] = True
+                    self.results['msg'] = 'Success: Host ID %s found.' % hostname
+                    self.results['return'] = results
+            else:
+                if not self._is_valid_ipv4(hostname):
+                    hostname = hostname.split('.')[0]
+                results = self._get_rest_call('%s/hosts' % (self.foreman),
+                                              {'search':  'name~%s' % hostname})
+                if results['subtotal'] == 0:
+                    self.results['success'] = False
+                    self.results['msg'] = 'Warning: No host matches for %s.' % hostname
+                    self.results['return'] = results['results']
+                elif results['subtotal'] > 1:
+                    self.results['success'] = False
+                    self.results['msg'] = 'Warning: Too many host matches for %s (%s).' % (hostname, results['total'])
+                    self.results['return'] = results['results']
+                else:
+                    self.results['success'] = True
+                    self.results['msg'] = 'Success: Hostname %s found.' % hostname
+                    self.results['return'] = self._get_rest_call('%s/hosts/%s' % (self.foreman, results['results'][0]['id']))
+
+        logger.debug(self.results['msg'])
+        if self.results['success']:
+            return self.results['return']
+        return None
+
+    def get_host_list(self):
+        ''' This returns a list of Satellite 6 Hosts.
+
+        Returns:
+            List of Hosts (dict). Of particular value will be
+
+        '''
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        item = 0
+        page_item = 0
+        page = 1
+
+        results = self._get_rest_call('%s/hosts' % (self.foreman),
+                                      {'page': page, 'per_page': self.per_page})
+        while item < results['subtotal']:
+            if page_item == self.per_page:
+                page += 1
+                page_item = 0
+                results = self._get_rest_call('%s/hosts' % (self.foreman),
+                                              {'page': page, 'per_page': self.per_page})
+            yield results['results'][page_item]
+            item += 1
+            page_item += 1
+
+    def get_cv_list(self):
+        ''' This returns a list of Satellite 6 content views.
+
+        Returns:
+            List of Orgs (dict). Of particular value will be
+
+        '''
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        item = 0
+        page_item = 0
+        page = 1
+
+        results = self._get_rest_call('%s/content_views' % (self.katello),
+                                      {'page': page, 'per_page': self.per_page})
+        while item < results['subtotal']:
+            if page_item == self.per_page:
+                page += 1
+                page_item = 0
+                results = self._get_rest_call('%s/content_views' % (self.katello),
+                                              {'page': page, 'per_page': self.per_page})
+            yield results['results'][page_item]
+            item += 1
+            page_item += 1
+
+    def get_hc(self, collection=None):
+        ''' Returns info about a Satellite 6 collection.
+            If collection is an integer (i.e., self.org_id), will return
+            detailed info about that specific org.
+            Otherwise will run a search for string passed. If only one result
+            is found, will return some very basic info about said org.
+
+        Args:
+            collection (str/int): Name of collection to find.
+
+        Returns:
+            Basic info of collection (dict). Of particular value may be
+            return['name']
+            return['id']
+            return['title']
+            return['label']
+            return['description']
+
+        '''
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        if collection is None:
+            logger.debug('Was not given collection to find.')
+            return None
+        logger.debug('Looking for collection: %s', collection)
+        self.results = {"success": None, "msg": None, "return": None}
+
+        if isinstance(collection, int):
+            results = self._get_rest_call('%s/host_collections/%s' % (self.katello, collection))
+            if 'error' in results:
+                #-- This is not likely to execute, as if the host ID is not
+                #   found a 404 is thrown, which is caught by the exception
+                #   handling mechanism, and the program will bomb out.
+                #   Not sure I want to change that...
+                self.results['success'] = False
+                self.results['msg'] = 'Warning: No Collection ID %s.' % collection
+                self.results['return'] = results
+            else:
+                self.results['success'] = True
+                self.results['msg'] = 'Success: Collection ID %s found.' % collection
+                self.results['return'] = results
+        else:
+            search_str = 'name~"%s"' % collection
+
+            results = self._get_rest_call('%s/organizations/%s/host_collections/' % (self.katello, self.org_id),
+                                          urlencode([('search', '' + str(search_str))]))
+            if results['subtotal'] == 0:
+                self.results['success'] = False
+                self.results['msg'] = 'Warning: No collection matches for %s.' % collection
+                self.results['return'] = results['results']
+            elif results['subtotal'] > 1:
+                self.results['success'] = False
+                self.results['msg'] = 'Warning: Too many collection matches for %s (%s).' % (collection, results['total'])
+                self.results['return'] = results['results']
+                for result in results['results']:
+                    if result['name'].lower() == collection.lower():
+                        self.results['success'] = True
+                        self.results['msg'] = 'Success: Collection %s found.' % collection
+                        self.results['return'] = result
+            else:
+                self.results['success'] = True
+                self.results['msg'] = 'Success: Collection %s found.' % collection
+                self.results['return'] = results['results'][0]
+
+        logger.debug(self.results['msg'])
+        if self.results['success']:
+            return self.results['return']
+        return None
+
+    def get_hc_list(self):
+        ''' This returns a list of Satellite 6 content views.
+
+        Returns:
+            List of Orgs (dict). Of particular value will be
+
+        '''
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        item = 0
+        page_item = 0
+        page = 1
+
+        results = self._get_rest_call('%s/organizations/%s/host_collections' % (self.katello, self.org_id),
+                                      {'page': page, 'per_page': self.per_page})
+        while item < results['subtotal']:
+            if page_item == self.per_page:
+                page += 1
+                page_item = 0
+                results = self._get_rest_call('%s/organizations/%s/host_collections' % (self.katello, self.org_id),
+                                              {'page': page, 'per_page': self.per_page})
+            yield results['results'][page_item]
+            item += 1
+            page_item += 1
+
+    def create_hc(self, collection):
+        ''' Creates a host collection in the default organization
+
+        Args:
+            collection (str): Name of collection to create
+
+        Returns:
+            Basic info of collection created
+        '''
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        if collection is None:
+            logger.debug('Was not given collection to create.')
+            return None
+        logger.debug('Creating collection: %s', collection)
+        self.results = {"success": None, "msg": None, "return": None}
+
+        check = self.get_hc(collection)
+        if check:
+            self.results['return'] = check
+            self.results['success'] = True
+            self.results['msg'] = 'Collection %s exists, nothing to do.' % (collection)
+            return True
+
+        results = self._post_rest_call('%s/organizations/%s/host_collections' % (self.katello, self.org_id),
+                                       {'organization_id': self.org_id, 'name': collection})
+        if results['id']:
+            self.results['return'] = results
+            self.results['success'] = True
+            self.results['msg'] = 'Collection %s created.' % (collection)
+            return True
+        self.results['return'] = results
+        self.results['success'] = False
+        self.results['msg'] = 'Unable to create collection, reason unknown.'
+        return False
+
+    def get_org(self, organization=None):
+        ''' Returns info about a Satellite 6 organization.
+            If organization is an integer (i.e., self.org_id), will return
+            detailed info about that specific org.
+            Otherwise will run a search for string passed. If only one result
+            is found, will return some very basic info about said org.
+
+        Args:
+            organization (str/int): Name of organization to find.
+
+        Returns:
+            Basic info of organization (dict). Of particular value may be
+            return['name']
+            return['id']
+            return['title']
+            return['label']
+            return['description']
+
+        '''
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        if organization is None:
+            if self.org_id is None:
+                organization = self.org_name
+            else:
+                organization = self.org_id
+        logger.debug('Looking for organization: %s', organization)
+        self.results = {"success": None, "msg": None, "return": None}
+
+        if isinstance(organization, int):
+            results = self._get_rest_call('%s/organizations/%s' % (self.katello, organization))
+            if 'error' in results:
+                #-- This is not likely to execute, as if the host ID is not
+                #   found a 404 is thrown, which is caught by the exception
+                #   handling mechanism, and the program will bomb out.
+                #   Not sure I want to change that...
+                self.results['success'] = False
+                self.results['msg'] = 'Warning: No Organization ID %s.' % organization
+                self.results['return'] = results
+            else:
+                self.results['success'] = True
+                self.results['msg'] = 'Success: Organization ID %s found.' % organization
+                self.results['return'] = results
+        else:
+            results = self._get_rest_call('%s/organizations' % (self.katello),
+                                          {'search': organization})
+            if results['subtotal'] == 0:
+                self.results['success'] = False
+                self.results['msg'] = 'Warning: No organization matches for %s.' % organization
+                self.results['return'] = results['results']
+            elif results['subtotal'] > 1:
+                self.results['success'] = False
+                self.results['msg'] = 'Warning: Too many organization matches for %s (%s).' % (organization, results['total'])
+                self.results['return'] = results['results']
+            else:
+                self.results['success'] = True
+                self.results['msg'] = 'Success: Organization %s found.' % organization
+                self.results['return'] = results['results'][0]
+
+        logger.debug(self.results['msg'])
+        if self.results['success']:
+            return self.results['return']
+        return None
+
+    def get_org_list(self):
+        ''' This returns a list of Satellite 6 organizations.
+
+        Returns:
+            List of Orgs (dict). Of particular value will be
+
+        '''
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        item = 0
+        page_item = 0
+        page = 1
+
+        results = self._get_rest_call('%s/organizations' % (self.katello),
+                                      {'page': page, 'per_page': self.per_page})
+        while item < results['subtotal']:
+            if page_item == self.per_page:
+                page += 1
+                page_item = 0
+                results = self._get_rest_call('%s/organizations' % (self.katello),
+                                              {'page': page, 'per_page': self.per_page})
+            yield results['results'][page_item]
+            item += 1
+            page_item += 1
+
+    def get_org_lce(self, lce_name, org_id=None):
+        ''' This returns info about an Lifecycle Environments
+
+        Args:
+            lce_name: LCE name to lookup
+            org_id:   Organization ID to check
+
+        Returns:
+            A dict of info about a LCE
+
+        '''
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        if org_id is None:
+            org_id = self.org_id
+        logger.debug('Looking for Life Cycle Environment %s in org %s.', lce_name, org_id)
+        self.results = {"success": None, "msg": None, "return": None}
+
+        if lce_name is None:
+            self.results['success'] = False
+            self.results['msg'] = 'Error: lce_name passed was type None.'
+        else:
+            results = self._get_rest_call('%s/organizations/%s/environments' % (self.katello, org_id),
+                                          {'search': '"%s"' % lce_name})
+            if results['subtotal'] == 0:
+                self.results['success'] = False
+                self.results['msg'] = 'Error: No LCE matches for %s in org %s.' % lce_name, org_id
+            elif results['subtotal'] > 1:
+                self.results['success'] = False
+                self.results['msg'] = 'Error: Too many LCE matches for %s in org %s.' % lce_name, org_id
+            else:
+                self.results['success'] = True
+                self.results['msg'] = 'Success: Found LCE %s.' % lce_name
+                self.results['return'] = results['results'][0]
+
+        logger.debug(self.results['msg'])
+        if self.results['success']:
+            return self.results['return']
+        return None
+
+    def get_org_lce_list(self, org_id=None):
+        ''' This returns a list of an Orgs Lifecycel Environments
+
+        Args:
+            org_id:           Organization ID to check
+
+        Returns:
+            List of LCEs (dict). Of particular value may be
+
+        '''
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        if org_id is None:
+            org_id = self.org_id
+        logger.debug('Retriveing list of Lifecycle Environments for org_id %s.', org_id)
+        item = 0
+        page_item = 0
+        page = 1
+
+        results = self._get_rest_call('%s/organizations/%s/environments' % (self.katello, org_id),
+                                      {'page': page, 'per_page': self.per_page})
+        while item < results['subtotal']:
+            if page_item == self.per_page:
+                page += 1
+                page_item = 0
+                results = self._get_rest_call(
+                    '%s/organizations/%s/environments' % (self.katello, org_id),
+                    {'page': page, 'per_page': self.per_page})
+            yield results['results'][page_item]
+            item += 1
+            page_item += 1
+
+    def get_loc(self, location=None):
+        ''' Returns info about a Satellite 6 location.
+            If location is an integer (i.e., self.org_id), will return
+            detailed info about that specific org.
+            Otherwise will run a search for string passed. If only one result
+            is found, will return some very basic info about said org.
+
+        Args:
+            location (str/int): Name of location to find.
+
+        Returns:
+            Basic info of location (dict). Of particular value may be
+            return['name']
+            return['id']
+            return['title']
+            return['label']
+            return['description']
+
+        '''
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        if location is None:
+            logger.debug('Was not given location to find.')
+            return None
+        logger.debug('Looking for location: %s', location)
+        self.results = {"success": None, "msg": None, "return": None}
+
+        if isinstance(location, int):
+            results = self._get_rest_call('%s/locations/%s' % (self.foreman, location))
+            if 'error' in results:
+                #-- This is not likely to execute, as if the host ID is not
+                #   found a 404 is thrown, which is caught by the exception
+                #   handling mechanism, and the program will bomb out.
+                #   Not sure I want to change that...
+                self.results['success'] = False
+                self.results['msg'] = 'Warning: No Location ID %s.' % location
+                self.results['return'] = results
+            else:
+                self.results['success'] = True
+                self.results['msg'] = 'Success: Location ID %s found.' % location
+                self.results['return'] = results
+        else:
+            if '/' in location:
+                search_str = 'title~"%s"' % location
+            else:
+                search_str = 'name~"%s"' % location
+
+            results = self._get_rest_call('%s/locations/' % (self.foreman),
+                                          urlencode([('search', '' + str(search_str))]))
+            if results['subtotal'] == 0:
+                self.results['success'] = False
+                self.results['msg'] = 'Warning: No location matches for %s.' % location
+                self.results['return'] = results['results']
+            elif results['subtotal'] > 1:
+                self.results['success'] = False
+                self.results['msg'] = 'Warning: Too many location matches for %s (%s).' % (location, results['total'])
+                self.results['return'] = results['results']
+            else:
+                self.results['success'] = True
+                self.results['msg'] = 'Success: Location %s found.' % location
+                self.results['return'] = results['results'][0]
+
+        logger.debug(self.results['msg'])
+        if self.results['success']:
+            return self.results['return']
+        return None
+
+    def get_loc_list(self):
+        ''' This returns a list of Satellite 6 locations.
+
+        Returns:
+            List of Orgs (dict). Of particular value will be
+
+        '''
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        item = 0
+        page_item = 0
+        page = 1
+
+        results = self._get_rest_call('%s/locations' % (self.foreman),
+                                      {'page': page, 'per_page': self.per_page})
+        while item < results['subtotal']:
+            if page_item == self.per_page:
+                page += 1
+                page_item = 0
+                results = self._get_rest_call('%s/locations' % (self.foreman),
+                                              {'page': page, 'per_page': self.per_page})
+            yield results['results'][page_item]
+            item += 1
+            page_item += 1
+
+    def set_host_lce(self, host, lce):
+        ''' Set the LifeCycle Environment of a Sat6 host
+
+         Args:
+            host:           Host to change
+            lce:            New LCE to set
+
+        Returns:
+            Status of request. Will set self.results
+
+       '''
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        self.results = {"success": None, "msg": None, "return": None}
+        if host is None:
+            self.results['success'] = False
+            self.results['msg'] = 'Passed host is None.'
+        elif 'id' not in host:
+            logger.debug('Host does not have ID attribute, attempting lookup for: %s.', host)
+            host = self.get_host(host)
+        #-- We rely on the fact that get_host will set self.results appropriately
+        if self.results['success'] is False:
+            logger.debug(self.results['msg'])
+            return False
+
+        if lce is None:
+            self.results['success'] = False
+            self.results['msg'] = 'Passed LCE is None.'
+        #-- We rely on the fact that get_org_lce will set self.results appropriately
+        elif 'id' not in lce:
+            logger.debug('LCE does not have ID attribute, attempting lookup for: %s.', lce)
+            lce = self.get_org_lce(self.lookup_lce_name(lce))
+        if self.results['success'] is False:
+            logger.debug(self.results['msg'])
+            return False
+
+        if 'content_facet_attributes' not in host:
+            self.results['success'] = False
+            self.results['msg'] = '%s is not a content host.' % (host['name'])
+            return False
+
+        if host['content_facet_attributes']['lifecycle_environment']['id'] == lce['id']:
+            self.results['return'] = host
+            self.results['success'] = True
+            self.results['msg'] = 'LCE was already %s, no change needed.' % (lce['name'])
+            return True
+
+        results = self._put_rest_call('%s/hosts/%s' % (self.foreman, host['id']),
+                                      {'host': {'content_facet_attributes':
+                                                    {'lifecycle_environment_id': lce['id']}
+                                               }}
+                                     )
+        if results['content_facet_attributes']['lifecycle_environment']['id'] == lce['id']:
+            self.results['return'] = results
+            self.results['success'] = True
+            self.results['msg'] = 'LCE changed to %s.' % (lce['name'])
+            return True
+
+        self.results['return'] = results
+        self.results['success'] = False
+        self.results['msg'] = 'LCE not set, cause unknown.'
+        return False
+
+    def set_host_loc(self, host, location):
+        ''' Set the LifeCycle Environment of a Sat6 host
+
+         Args:
+            host:           Host to change
+            location:            New Location to set
+
+        Returns:
+            Status of request. Will set self.results
+
+       '''
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        self.results = {"success": None, "msg": None, "return": None}
+        if host is None:
+            self.results['success'] = False
+            self.results['msg'] = 'Passed host is None.'
+        elif 'id' not in host:
+            logger.debug('Host does not have ID attribute, attempting lookup for: %s.', host)
+            host = self.get_host(host)
+        #-- We rely on the fact that get_host will set self.results appropriately
+        if self.results['success'] is False:
+            logger.debug(self.results['msg'])
+            return False
+
+        if location is None:
+            self.results['success'] = False
+            self.results['msg'] = 'Passed Location is None.'
+        #-- We rely on the fact that get_org_location will set self.results appropriately
+        elif 'id' not in location:
+            logger.debug('Location does not have ID attribute, attempting lookup for: %s.', location)
+            location = self.get_loc(location)
+        if self.results['success'] is False:
+            logger.debug(self.results['msg'])
+            return False
+
+        if host['location_id'] == location['id']:
+            self.results['return'] = host
+            self.results['success'] = True
+            self.results['msg'] = 'Location was already %s, no change needed.' % (location['name'])
+            return True
+
+        results = self._put_rest_call('%s/hosts/%s' % (self.foreman, host['id']),
+                                      {'host': {'location_id': location['id']} }
+                                     )
+        if results['location_id'] == location['id']:
+            self.results['return'] = results
+            self.results['success'] = True
+            self.results['msg'] = 'Location changed to %s.' % (location['title'])
+            return True
+
+        self.results['return'] = results
+        self.results['success'] = False
+        self.results['msg'] = 'Location not set, cause unknown.'
+        return False
+
+    def add_host_hc(self, host, collection):
+        ''' Add a Sat6 host to a collection
+
+         Args:
+            host:           Host to add
+            collection:     New collection to add to
+
+        Returns:
+            Status of request. Will set self.results
+
+       '''
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        self.results = {"success": None, "msg": None, "return": None}
+        if host is None:
+            self.results['success'] = False
+            self.results['msg'] = 'Passed host is None.'
+        elif 'id' not in host:
+            logger.debug('Host does not have ID attribute, attempting lookup for: %s.', host)
+            host = self.get_host(host)
+        #-- We rely on the fact that get_host will set self.results appropriately
+        if self.results['success'] is False:
+            logger.debug(self.results['msg'])
+            return False
+
+        if collection is None:
+            self.results['success'] = False
+            self.results['msg'] = 'Passed Collection is None.'
+        #-- We rely on the fact that get_org_location will set self.results appropriately
+        elif 'id' not in collection:
+            logger.debug('Collection does not have ID attribute, attempting lookup for: %s.', collection)
+            collection = self.get_hc(collection)
+        if self.results['success'] is False:
+            logger.debug(self.results['msg'])
+            return False
+
+        for _, item in enumerate(host['host_collections']):
+            if item['id'] == collection['id']:
+                self.results['return'] = host
+                self.results['success'] = True
+                self.results['msg'] = 'Host already in %s, no change needed.' % (collection['name'])
+                return True
+
+        results = self._put_rest_call('%s/host_collections/%s/add_hosts' % (self.katello, collection['id']),
+                                      {'id': collection['id'], 'host_ids': host['id']}
+                                     )
+        host = self.get_host(host['id'])
+        for _, item in enumerate(host['host_collections']):
+            if item['id'] == collection['id']:
+                self.results['return'] = host
+                self.results['success'] = True
+                self.results['msg'] = 'Host successfully added to %s.' % (collection['name'])
+                return True
+        self.results['return'] = results
+        self.results['success'] = False
+        self.results['msg'] = 'Host  not added to collection, cause unknown.'
+        return False
+
+    def remove_host_hc(self, host, collection):
+        ''' Remove a Sat6 host to a collection
+
+         Args:
+            host:           Host to remove
+            collection:     New collection to remove from
+
+        Returns:
+            Status of request. Will set self.results
+
+       '''
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        self.results = {"success": None, "msg": None, "return": None}
+        if host is None:
+            self.results['success'] = False
+            self.results['msg'] = 'Passed host is None.'
+        elif 'id' not in host:
+            logger.debug('Host does not have ID attribute, attempting lookup for: %s.', host)
+            host = self.get_host(host)
+        #-- We rely on the fact that get_host will set self.results appropriately
+        if self.results['success'] is False:
+            logger.debug(self.results['msg'])
+            return False
+
+        if collection is None:
+            self.results['success'] = False
+            self.results['msg'] = 'Passed Collection is None.'
+        #-- We rely on the fact that get_org_location will set self.results appropriately
+        elif 'id' not in collection:
+            logger.debug('Collection does not have ID attribute, attempting lookup for: %s.', collection)
+            collection = self.get_hc(collection)
+        if self.results['success'] is False:
+            logger.debug(self.results['msg'])
+            return False
+
+        in_list = False
+        for _, item in enumerate(host['host_collections']):
+            if item['id'] == collection['id']:
+                in_list = True
+
+        if not in_list:
+            self.results['return'] = host
+            self.results['success'] = True
+            self.results['msg'] = 'Host not in %s, no change needed.' % (collection['name'])
+            return True
+
+        results = self._put_rest_call('%s/host_collections/%s/remove_hosts' % (self.katello, collection['id']),
+                                      {'id': collection['id'], 'host_ids': host['id']}
+                                     )
+        host = self.get_host(host['id'])
+        for _, item in enumerate(host['host_collections']):
+            if item['id'] == collection['id']:
+                self.results['return'] = results
+                self.results['success'] = False
+                self.results['msg'] = 'Host not removed from collection, cause unknown.'
+                return True
+        self.results['return'] = host
+        self.results['success'] = True
+        self.results['msg'] = 'Host successfully removed from collection %s.' % (collection['name'])
+        return False
 
 
 #==============================================================================
