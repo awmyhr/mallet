@@ -87,8 +87,8 @@ if sys.version_info <= (2, 6):
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
-__version__ = '2.0.0' #: current version
-__revised__ = '20181212-163918' #: date of most recent revision
+__version__ = '2.0.1' #: current version
+__revised__ = '20181212-165139' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Tool for interacting with Satellite 6 via REST API'
 __description__ = '''Allows the user to perfrom a variety of actions on a
@@ -735,6 +735,8 @@ class Sat6Object(object):
     #   optimal value to avoid timeouts.
     per_page = 100
     lookup_tables = {'lce': 'lut/lce_name.json'}
+    hl_start = '\x1b[38;2;100;149;237m'
+    hl_end = '\x1b[0m'
 
     def __init__(self, server=None, username=None, password=None,
                  authkey=None, org_id=None, org_name=None, insecure=False):
@@ -1802,7 +1804,10 @@ def task_collection(sat6_session, verb, *args):
         print('%-35s: %s' % ('Name', 'Host count'))
         print('=' * 70)
         for hcollec in sat6_session.get_hc_list():
-            print('\x1b[38;2;100;149;237m%-35s: %s\x1b[0m' % (hcollec['name'], hcollec['total_hosts']))
+            print('%s%-35s: %s%s' % (sat6_session.hl_start,
+                                     hcollec['name'],
+                                     hcollec['total_hosts'],
+                                     sat6_session.hl_end))
         print('=' * 70)
     else:
         options.parser.error('collection does not support action: %s' % verb)
@@ -1867,7 +1872,9 @@ def task_lce(sat6_session, verb, *args):
         for key, value in sorted(sat6_session.lutables['lce'].iteritems(),
                                  key=lambda (k, v): (v, k)):
             if not key.startswith('_'):
-                print('\x1b[38;2;100;149;237m%-35s: %s\x1b[0m' % (key, value))
+                print('%s%-35s: %s%s' % (sat6_session.hl_start,
+                                         key, value,
+                                         sat6_session.hl_end))
         print('=' * 70)
         print('Note: The values are case insensitive.')
     else:
@@ -1918,7 +1925,9 @@ def task_location(sat6_session, verb, *args):
                 parent = sat6_session.get_loc(loc['parent_id'])['title']
             else:
                 parent = '[None]'
-            print('\x1b[38;2;100;149;237m%-35s: %s\x1b[0m' % (loc['title'], parent))
+            print('%s%-35s: %s%s' % (sat6_session.hl_start,
+                                     loc['title'], parent,
+                                     sat6_session.hl_end))
         print('=' * 70)
     else:
         options.parser.error('location does not support action: %s' % verb)
