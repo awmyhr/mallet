@@ -1,4 +1,6 @@
 #!/usr/bin/python2 -tt
+# pylint: disable=too-many-lines
+# Yes, this is far too long, someday will turn it into a library...
 # -*- coding: utf-8 -*-
 # ^^-- use utf-8 strings by default
 #-- NOTE: Tabs and spaces do NOT mix!! '-tt' will flag violations as an error.
@@ -18,7 +20,7 @@
 
         Output debug-level information.
 
-    :synopsis: TODO: CHANGEME
+    :synopsis: A single-file tool for interacting with Sat6
 
     :copyright: 2018 awmyhr
     :license: Apache-2.0
@@ -35,7 +37,7 @@ from __future__ import with_statement   #: Clean up some uses of try/except PEP-
 #-- These may break 2.5 compatibility
 from __future__ import print_function   #: Makes print a function, not a statement PEP-3105
 from __future__ import unicode_literals #: Introduce bytes type for older strings PEP-3112
-import ConfigParser #: 'Easy' configuration parsing
+import configparser #: 'Easy' configuration parsing
 #-- NOTE: We use optparse for compatibility with python < 2.7 as
 #--       argparse wasn't standard until 2.7 (2.7 deprecates optparse)
 #--       As of 20161212 the template is coded for optparse only
@@ -85,11 +87,16 @@ if sys.version_info <= (2, 6):
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
-__version__ = '0.1.0-alpha' #: current version
-__revised__ = '20181212-131535' #: date of most recent revision
+__version__ = '2.0.0-alpha' #: current version
+__revised__ = '20181212-141437' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
-__synopsis__ = 'TODO: CHANGEME'
-__description__ = '''TODO: CHANGEME
+__synopsis__ = 'Tool for interacting with Satellite 6 via REST API'
+__description__ = '''Allows the user to perfrom a variety of actions on a
+Satellite 6 server from any command line without hammer.
+Currently available topics and relevant actions are:
+ - collection [Host Collections] (get, add, remove, lookup, show)
+ - lce [Life-Cycle Environment]  (get, set, lookup, show)
+ - location [Location]           (get, set, lookup, show)
 '''
 #------------------------------------------------------------------------------
 #-- The following few variables should be relatively static over life of script
@@ -479,43 +486,6 @@ def RunLogger(debug=False):
 
 
 #==============================================================================
-def which(program):
-    '''Test if a program exists in $PATH.
-
-    Args:
-        program (str): Name of program to find.
-
-    Returns:
-        String to use for program execution.
-
-    Note:
-        Originally found this here:
-        http://stackoverflow.com/questions/377017/test-if-executable-exists-in-python
-    '''
-    logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
-    logger.debug('Looking for command: %s', program)
-    def _is_exe(fpath):
-        ''' Private test for executeable '''
-        return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
-
-    fpath, _ = os.path.split(program)
-    if fpath:
-        if _is_exe(program):
-            logger.debug('Found %s here.', program)
-            return program
-    else:
-        for path in os.environ["PATH"].split(os.pathsep):
-            path = path.strip('"')
-            exe_file = os.path.join(path, program)
-            if _is_exe(exe_file):
-                logger.debug('Found %s here: %s', program, exe_file)
-                return exe_file
-
-    logger.debug('Could not find %s.', program)
-    return None
-
-
-#==============================================================================
 class RunOptions(object):
     ''' Parse the options and put them into an object
 
@@ -524,7 +494,14 @@ class RunOptions(object):
 
     '''
     _defaults = {
+        'authkey': None,
         'debug': False,
+        'id': None,
+        'insecure': 0,
+        'name': None,
+        'password': None,
+        'hostname': None,
+        'username': None
     }
 
     _arguments = None
@@ -537,17 +514,25 @@ class RunOptions(object):
         else:
             self._configs = self._load_configs()
         if self._options is not None:
-            raise ValueError('Arguments already initialized.')
+            raise ValueError('Options already initialized.')
         else:
             (self._options, self._arguments) = self._parse_args(args)
 
     def _load_configs(self):
-        parser = ConfigParser.SafeConfigParser(defaults=self._defaults)
-        parser.read([os.path.expanduser('~/.%s' % __cononical_name__),
+        parser = configparser.SafeConfigParser(defaults=self._defaults)
+        parser.read(['/etc/rhsm/rhsm.conf',
+                     os.path.expanduser('~/.satellite6'),
+                     os.path.expanduser('~/.%s' % __cononical_name__),
                      '%s.cfg' % __cononical_name__])
         #-- TODO: Define possible sections
         if not parser.has_section('debug'):
             parser.add_section('debug')
+        if not parser.has_section('organization'):
+            parser.add_section('organization')
+        if not parser.has_section('server'):
+            parser.add_section('server')
+        if not parser.has_section('user'):
+            parser.add_section('user')
         return parser
 
     @property
@@ -569,6 +554,83 @@ class RunOptions(object):
         ''' Class property '''
         return bool(__basename__.startswith('ansible_module'))
 
+    @property
+    def authkey(self):
+        ''' Class property '''
+        if self._options is not None:
+            return self._options.authkey
+        return None
+
+    @property
+    def configfile(self):
+        ''' Class property '''
+        if self._options is not None:
+            return self._options.configfile
+        return None
+
+    @property
+    def hostlist(self):
+        ''' Class property '''
+        if self._options is not None:
+            return self._options.hostlist
+        return None
+
+    @property
+    def hostname(self):
+        ''' Class property '''
+        if self._options is not None:
+            return self._options.hostname
+        return None
+
+    @property
+    def insecure(self):
+        ''' Class property '''
+        if self._options is not None:
+            return self._options.insecure
+        return None
+
+    @property
+    def lifecycle(self):
+        ''' Class property '''
+        if self._options is not None:
+            return self._options.lifecycle
+        return None
+
+    @property
+    def org_id(self):
+        ''' Class property '''
+        if self._options is not None:
+            return self._options.org_id
+        return None
+
+    @property
+    def org_name(self):
+        ''' Class property '''
+        if self._options is not None:
+            return self._options.org_name
+        return None
+
+    @property
+    def password(self):
+        ''' Class property '''
+        if self._options is not None:
+            return self._options.password
+        return None
+
+    @property
+    def server(self):
+        ''' Class property '''
+        if self._options is not None:
+            return self._options.server
+        return None
+
+    @property
+    def username(self):
+        ''' Class property '''
+        if self._options is not None:
+            return self._options.username
+        return None
+
     def _parse_args(self, args):
         #-- Parse Options (rely on OptionsParser's exception handling)
         description_string = __synopsis__
@@ -581,7 +643,11 @@ class RunOptions(object):
                              __revised__, __version__,
                              __cononical_name__, __project_name__, __project_home__
                             )
-        usage_string = '%s [options]' % (__basename__)
+        usage_string = ('%s [options] <topic> get <hostname>\n'
+                        '  or:  %s [options] <topic> <add|remove|set> <hostname> <target>\n'
+                        '  or:  %s [options] <topic> lookup <target>\n'
+                        '  or:  %s [options] <topic> show') % (
+                            __basename__, __basename__, __basename__, __basename__)
         version_string = '%s (%s) %s' % (__cononical_name__, __project_name__, __version__)
         if __gnu_version__:
             version_string += '\nCopyright %s\nLicense %s\n' % (__copyright__, __license__)
@@ -590,13 +656,36 @@ class RunOptions(object):
         #-- TODO: Add options, also set _default and @property (if needed).
         #-- Visible Options
         #   These can *not* be set in a config file
+        parser.add_option('-c', '--config', dest='configfile', type='string',
+                          help='User Satellite config file.', default=None)
         #   These could be set in a config file
+        parser.add_option('-o', '--organization', dest='org_name', type='string',
+                          help='Organization name.',
+                          default=self._configs.get('organization', 'name'))
+        parser.add_option('-O', '--organization-id', dest='org_id', type='int',
+                          help='Organization ID number.',
+                          default=self._configs.get('organization', 'id'))
+        parser.add_option('-s', '--server', dest='server', type='string',
+                          help='Satellite server.',
+                          default=self._configs.get('server', 'hostname'))
+        parser.add_option('-u', '--username', dest='username', type='string',
+                          help='Satellite username.',
+                          default=self._configs.get('user', 'username'))
+        parser.add_option('-p', '--password', dest='password', type='string',
+                          help='Satellite user password.',
+                          default=self._configs.get('user', 'password'))
+        parser.add_option('-K', '--userkey', dest='authkey', type='string',
+                          help='Satellite user access key.',
+                          default=self._configs.get('user', 'authkey'))
 
         #-- Hidden Options
         #   These can *not* be set in a config file
         parser.add_option('--help-rest', dest='helprest', action='store_true',
                           help=optparse.SUPPRESS_HELP, default=None)
         #   These could be set in a config file
+        parser.add_option('--ssl-insecure', dest='insecure', action='store_true',
+                          help=optparse.SUPPRESS_HELP,
+                          default=self._configs.get('server', 'insecure'))
         parser.add_option('--debug', dest='debug', action='store_true',
                           help=optparse.SUPPRESS_HELP,
                           default=self._configs.get('debug', 'debug'))
@@ -611,6 +700,27 @@ class RunOptions(object):
             parser.print_help()
             sys.exit(os.EX_OK)
         #-- Put any option validation here...
+        if parsed_opts.org_id and parsed_opts.org_name:
+            parser.error('Provide either Organization ID or Name (or neither), not both.')
+
+        if len(parsed_args) < 1:
+            parser.error('Not enough arguments.')
+        elif len(parsed_args) > 4:
+            parser.error('Too many arguments.')
+
+        if parsed_opts.authkey is None:
+            if parsed_opts.username is None:
+                try:
+                    from six.moves import input
+                    parsed_opts.username = input('Username for Satellite server: ')
+                except ImportError:
+                    raise ImportError('The input module is required.')
+            if parsed_opts.password is None:
+                try:
+                    import getpass
+                    parsed_opts.password = getpass.getpass('Password for Satellite server: ')
+                except ImportError:
+                    raise ImportError('The getpass module is required.')
 
         return parsed_opts, parsed_args
 
