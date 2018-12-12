@@ -87,8 +87,8 @@ if sys.version_info <= (2, 6):
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
-__version__ = '2.0.0-alpha' #: current version
-__revised__ = '20181212-155824' #: date of most recent revision
+__version__ = '2.0.0' #: current version
+__revised__ = '20181212-163918' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Tool for interacting with Satellite 6 via REST API'
 __description__ = '''Allows the user to perfrom a variety of actions on a
@@ -1757,75 +1757,55 @@ def task_collection(sat6_session, verb, *args):
         logger.debug('With verb: %s; and args: %s' % (verb, args))
 
     if verb == 'get':
-        logger.debug('Was asked to get.')
-        if len(args) == 1:
-            host = sat6_session.get_host(args[0])
-            if host:
-                if 'host_collections' in host:
-                    for hcollec in host['host_collections']:
-                        print('%s' % hcollec['name'])
-                else:
-                    raise RuntimeError('%s has no host collections' % host['name'])
+        host = sat6_session.get_host(args[0])
+        if host:
+            if 'host_collections' in host:
+                for hcollec in host['host_collections']:
+                    print('%s' % hcollec['name'])
             else:
-                raise RuntimeError('Host %s not found.' % args[0])
+                raise RuntimeError('%s has no host collections' % host['name'])
         else:
-            options.parser.error('Action get requires a hostname and nothing else.')
+            raise RuntimeError('Host %s not found.' % args[0])
     elif verb == 'add':
-        logger.debug('Was asked to add.')
-        if len(args) == 2:
-            new_hc = sat6_session.get_hc(args[1])
-            if new_hc is None:
-                raise RuntimeError('"%s" does not exist in org %s.',
-                                   args[1], sat6_session.org_id)
-            host = sat6_session.get_host(args[0])
-            if host:
-                if sat6_session.add_host_hc(host, new_hc):
-                    print('%s: %s' % (host['name'], sat6_session.results['msg']))
-                else:
-                    raise RuntimeError('%s: %s', host['name'], sat6_session.results['msg'])
+        new_hc = sat6_session.get_hc(args[1])
+        if new_hc is None:
+            raise RuntimeError('"%s" does not exist in org %s.',
+                               args[1], sat6_session.org_id)
+        host = sat6_session.get_host(args[0])
+        if host:
+            if sat6_session.add_host_hc(host, new_hc):
+                print('%s: %s' % (host['name'], sat6_session.results['msg']))
             else:
-                raise RuntimeError('Host %s not found.' % args[0])
+                raise RuntimeError('%s: %s', host['name'], sat6_session.results['msg'])
         else:
-            options.parser.error('Action add requires a hostname and host collection.')
+            raise RuntimeError('Host %s not found.' % args[0])
     elif verb == 'remove':
-        logger.debug('Was asked to remove.')
-        if len(args) == 2:
-            new_hc = sat6_session.get_hc(args[1])
-            if new_hc is None:
-                raise RuntimeError('"%s" does not exist in org %s.',
-                                   args[1], sat6_session.org_id)
-            host = sat6_session.get_host(args[0])
-            if host:
-                if sat6_session.remove_host_hc(host, new_hc):
-                    print('%s: %s' % (host['name'], sat6_session.results['msg']))
-                else:
-                    raise RuntimeError('%s: %s', host['name'], sat6_session.results['msg'])
+        new_hc = sat6_session.get_hc(args[1])
+        if new_hc is None:
+            raise RuntimeError('"%s" does not exist in org %s.',
+                               args[1], sat6_session.org_id)
+        host = sat6_session.get_host(args[0])
+        if host:
+            if sat6_session.remove_host_hc(host, new_hc):
+                print('%s: %s' % (host['name'], sat6_session.results['msg']))
             else:
-                raise RuntimeError('Host %s not found.' % args[0])
+                raise RuntimeError('%s: %s', host['name'], sat6_session.results['msg'])
         else:
-            options.parser.error('Action remove requires a hostname and host collection.')
+            raise RuntimeError('Host %s not found.' % args[0])
     elif verb == 'lookup':
-        logger.debug('Was asked to lookup.')
-        if len(args) == 1:
-            hcollec = sat6_session.get_hc(args[0])
-            if hcollec:
-                print(hcollec['name'])
-            else:
-                raise RuntimeError('"%s" does not translate to a valid LCE.', args[0])
+        hcollec = sat6_session.get_hc(args[0])
+        if hcollec:
+            print(hcollec['name'])
         else:
-            options.parser.error('Action lookup requires a host collection and nothing else.')
+            raise RuntimeError('"%s" does not translate to a valid LCE.', args[0])
     elif verb == 'show':
-        logger.debug('Was asked to show.')
-        if len(args) == 0:
-            print('%-35s: %s' % ('Name', 'Host count'))
-            print('=' * 70)
-            for hcollec in sat6_session.get_hc_list():
-                print('\x1b[38;2;100;149;237m%-35s: %s\x1b[0m' % (hcollec['name'], hcollec['total_hosts']))
-            print('=' * 70)
-        else:
-            options.parser.error('Action show accepts no arguments.')
+        print('%-35s: %s' % ('Name', 'Host count'))
+        print('=' * 70)
+        for hcollec in sat6_session.get_hc_list():
+            print('\x1b[38;2;100;149;237m%-35s: %s\x1b[0m' % (hcollec['name'], hcollec['total_hosts']))
+        print('=' * 70)
     else:
-        options.parser.error('Unknown action: %s' % verb)
+        options.parser.error('collection does not support action: %s' % verb)
     return True
 
 
@@ -1853,61 +1833,45 @@ def task_lce(sat6_session, verb, *args):
         logger.debug('With verb: %s; and args: %s' % (verb, args))
 
     if verb == 'get':
-        logger.debug('Was asked to get.')
-        if len(args) == 1:
-            host = sat6_session.get_host(args[0])
-            if host:
-                if 'content_facet_attributes' in host:
-                    print('%s' % host['content_facet_attributes']['lifecycle_environment']['name'])
-                else:
-                    raise RuntimeError('%s has no lce', host['name'])
+        host = sat6_session.get_host(args[0])
+        if host:
+            if 'content_facet_attributes' in host:
+                print('%s' % host['content_facet_attributes']['lifecycle_environment']['name'])
             else:
-                raise RuntimeError('Host %s not found.', args[0])
+                raise RuntimeError('%s has no lce', host['name'])
         else:
-            options.parser.error('Action get requires a hostname and nothing else.')
+            raise RuntimeError('Host %s not found.', args[0])
     elif verb == 'set':
-        logger.debug('Was asked to set.')
-        if len(args) == 2:
-            new_lce = sat6_session.lookup_lce_name(args[1])
-            if new_lce is None:
-                raise RuntimeError('"%s" does not exist in org %s.',
-                                   args[1], sat6_session.org_id)
-            host = sat6_session.get_host(args[0])
-            if host:
-                if sat6_session.set_host_lce(host, new_lce):
-                    print('%s: %s' % (host['name'], sat6_session.results['msg']))
-                else:
-                    raise RuntimeError('%s: %s', host['name'], sat6_session.results['msg'])
+        new_lce = sat6_session.lookup_lce_name(args[1])
+        if new_lce is None:
+            raise RuntimeError('"%s" does not exist in org %s.',
+                               args[1], sat6_session.org_id)
+        host = sat6_session.get_host(args[0])
+        if host:
+            if sat6_session.set_host_lce(host, new_lce):
+                print('%s: %s' % (host['name'], sat6_session.results['msg']))
             else:
-                raise RuntimeError('Host %s not found.' % args[0])
+                raise RuntimeError('%s: %s', host['name'], sat6_session.results['msg'])
         else:
-            options.parser.error('Action set requires a hostname and life-cycle.')
+            raise RuntimeError('Host %s not found.' % args[0])
     elif verb == 'lookup':
-        logger.debug('Was asked to lookup.')
-        if len(args) == 1:
-            lce = sat6_session.lookup_lce_name(args[0])
-            if lce:
-                print(lce)
-            else:
-                raise RuntimeError('"%s" does not translate to a valid LCE.', args[0])
+        lce = sat6_session.lookup_lce_name(args[0])
+        if lce:
+            print(lce)
         else:
-            options.parser.error('Action lookup requires a life-cycle and nothing else.')
+            raise RuntimeError('"%s" does not translate to a valid LCE.', args[0])
     elif verb == 'show':
-        logger.debug('Was asked to show.')
-        if len(args) == 0:
-            _ = sat6_session.lookup_lce_name('qa')
-            print('%-35s: %s' % ('Possible Values', 'Target LCE'))
-            print('=' * 70)
-            for key, value in sorted(sat6_session.lutables['lce'].iteritems(),
-                                     key=lambda (k, v): (v, k)):
-                if not key.startswith('_'):
-                    print('\x1b[38;2;100;149;237m%-35s: %s\x1b[0m' % (key, value))
-            print('=' * 70)
-            print('Note: The values are case insensitive.')
-        else:
-            options.parser.error('Action show accepts no arguments.')
+        _ = sat6_session.lookup_lce_name('qa')
+        print('%-35s: %s' % ('Possible Values', 'Target LCE'))
+        print('=' * 70)
+        for key, value in sorted(sat6_session.lutables['lce'].iteritems(),
+                                 key=lambda (k, v): (v, k)):
+            if not key.startswith('_'):
+                print('\x1b[38;2;100;149;237m%-35s: %s\x1b[0m' % (key, value))
+        print('=' * 70)
+        print('Note: The values are case insensitive.')
     else:
-        options.parser.error('Unknown action: %s' % verb)
+        options.parser.error('lce does not support action: %s' % verb)
     return True
 
 
@@ -1919,61 +1883,45 @@ def task_location(sat6_session, verb, *args):
         logger.debug('With verb: %s; and args: %s' % (verb, args))
 
     if verb == 'get':
-        logger.debug('Was asked to get.')
-        if len(args) == 1:
-            host = sat6_session.get_host(args[0])
-            if host:
-                if 'location_name' in host:
-                    print('%s' % host['location_name'])
-                else:
-                    raise RuntimeError('%s has no location' % host['name'])
+        host = sat6_session.get_host(args[0])
+        if host:
+            if 'location_name' in host:
+                print('%s' % host['location_name'])
             else:
-                raise RuntimeError('Host %s not found.' % args[0])
+                raise RuntimeError('%s has no location' % host['name'])
         else:
-            options.parser.error('Action get requires a hostname and nothing else.')
+            raise RuntimeError('Host %s not found.' % args[0])
     elif verb == 'set':
-        logger.debug('Was asked to set.')
-        if len(args) == 2:
-            new_loc = sat6_session.get_loc(args[1])
-            if new_loc is None:
-                raise RuntimeError('"%s" does not exist in org %s.',
-                                   args[1], sat6_session.org_id)
-            host = sat6_session.get_host(args[0])
-            if host:
-                if sat6_session.set_host_loc(host, new_loc):
-                    print('%s: %s' % (host['name'], sat6_session.results['msg']))
-                else:
-                    raise RuntimeError('%s: %s', host['name'], sat6_session.results['msg'])
+        new_loc = sat6_session.get_loc(args[1])
+        if new_loc is None:
+            raise RuntimeError('"%s" does not exist in org %s.',
+                               args[1], sat6_session.org_id)
+        host = sat6_session.get_host(args[0])
+        if host:
+            if sat6_session.set_host_loc(host, new_loc):
+                print('%s: %s' % (host['name'], sat6_session.results['msg']))
             else:
-                raise RuntimeError('Host %s not found.' % args[0])
+                raise RuntimeError('%s: %s', host['name'], sat6_session.results['msg'])
         else:
-            options.parser.error('Action set requires a hostname and location.')
+            raise RuntimeError('Host %s not found.' % args[0])
     elif verb == 'lookup':
-        logger.debug('Was asked to lookup.')
-        if len(args) == 1:
-            loc = sat6_session.get_loc(args[0])
-            if loc:
-                print(loc['title'])
-            else:
-                raise RuntimeError('"%s" does not translate to a valid LCE.', args[0])
+        loc = sat6_session.get_loc(args[0])
+        if loc:
+            print(loc['title'])
         else:
-            options.parser.error('Action lookup requires a location and nothing else.')
+            raise RuntimeError('"%s" does not translate to a valid LCE.', args[0])
     elif verb == 'show':
-        logger.debug('Was asked to show.')
-        if len(args) == 0:
-            print('%-35s: %s' % ('Title', 'Parent'))
-            print('=' * 70)
-            for loc in sat6_session.get_loc_list():
-                if loc['parent_id'] is not None:
-                    parent = sat6_session.get_loc(loc['parent_id'])['title']
-                else:
-                    parent = '[None]'
-                print('\x1b[38;2;100;149;237m%-35s: %s\x1b[0m' % (loc['title'], parent))
-            print('=' * 70)
-        else:
-            options.parser.error('Action show accepts no arguments.')
+        print('%-35s: %s' % ('Title', 'Parent'))
+        print('=' * 70)
+        for loc in sat6_session.get_loc_list():
+            if loc['parent_id'] is not None:
+                parent = sat6_session.get_loc(loc['parent_id'])['title']
+            else:
+                parent = '[None]'
+            print('\x1b[38;2;100;149;237m%-35s: %s\x1b[0m' % (loc['title'], parent))
+        print('=' * 70)
     else:
-        options.parser.error('Unknown action: %s' % verb)
+        options.parser.error('location does not support action: %s' % verb)
     return True
 
 
@@ -2042,21 +1990,41 @@ def main():
                               password=options.password, authkey=options.authkey,
                               org_id=options.org_id, org_name=options.org_name,
                               insecure=options.insecure)
+    task = options.args[0]
+    if len(options.args) >= 2:
+        verb = options.args[1]
+        if verb not in ['get', 'add', 'remove', 'set', 'lookup', 'show']:
+            options.parser.error('Unknown action: %s' % verb)
+        if verb == 'get' and len(options.args) != 3:
+            options.parser.error('Action get requires only a hostname.')
+        elif verb == 'add' and len(options.args) != 4:
+            options.parser.error('Action add requires a hostname and target.')
+        elif verb == 'remove' and len(options.args) != 4:
+            options.parser.error('Action remove requires a hostname and target.')
+        elif verb == 'set' and len(options.args) != 4:
+            options.parser.error('Action set requires a hostname and target.')
+        elif verb == 'lookup' and len(options.args) != 3:
+            options.parser.error('Action lookup requires only a target.')
+        elif verb == 'show' and len(options.args) != 2:
+            options.parser.error('Action show accepts no arguments.')
+        logger.debug('Was asked to %s' % verb)
+    else:
+        verb = None
 
-    if options.args[0] == 'collection':
-        task_collection(sat6_session, options.args[1], *options.args[2:])
-    elif options.args[0] == 'hostlist':
+    if task == 'collection':
+        task_collection(sat6_session, verb, *options.args[2:])
+    elif task == 'hostlist':
         task_hostlist(sat6_session)
-    elif options.args[0] == 'lce':
-        task_lce(sat6_session, options.args[1], *options.args[2:])
-    elif options.args[0] == 'location':
-        task_location(sat6_session, options.args[1], *options.args[2:])
-    elif options.args[0] == '_experiment':
+    elif task == 'lce':
+        task_lce(sat6_session, verb, *options.args[2:])
+    elif task == 'location':
+        task_location(sat6_session, verb, *options.args[2:])
+    elif task == '_experiment':
         task__experiment(sat6_session, *options.args[1:])
-    elif options.args[0] == '_test':
+    elif task == '_test':
         task__test(sat6_session, *options.args[1:])
     else:
-        options.parser.error('Unknown task: %s' % options.args[0])
+        options.parser.error('Unknown task: %s' % task)
 
 
 #==============================================================================
