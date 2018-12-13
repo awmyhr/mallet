@@ -37,7 +37,7 @@ from __future__ import with_statement   #: Clean up some uses of try/except PEP-
 #-- These may break 2.5 compatibility
 from __future__ import print_function   #: Makes print a function, not a statement PEP-3105
 from __future__ import unicode_literals #: Introduce bytes type for older strings PEP-3112
-import configparser #: 'Easy' configuration parsing
+import ConfigParser #: 'Easy' configuration parsing
 #-- NOTE: We use optparse for compatibility with python < 2.7 as
 #--       argparse wasn't standard until 2.7 (2.7 deprecates optparse)
 #--       As of 20161212 the template is coded for optparse only
@@ -87,8 +87,8 @@ if sys.version_info <= (2, 6):
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
-__version__ = '2.1.0' #: current version
-__revised__ = '20181213-112942' #: date of most recent revision
+__version__ = '2.1.1' #: current version
+__revised__ = '20181213-124302' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Tool for interacting with Satellite 6 via REST API'
 __description__ = '''Allows the user to perfrom a variety of actions on a
@@ -521,7 +521,7 @@ class RunOptions(object):
             (self._options, self._arguments) = self._parse_args(args)
 
     def _load_configs(self):
-        parser = configparser.SafeConfigParser(defaults=self._defaults)
+        parser = ConfigParser.SafeConfigParser(defaults=self._defaults)
         parser.read(['/etc/rhsm/rhsm.conf',
                      os.path.expanduser('~/.satellite6'),
                      os.path.expanduser('~/.%s' % __cononical_name__),
