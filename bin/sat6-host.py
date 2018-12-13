@@ -87,14 +87,15 @@ if sys.version_info <= (2, 6):
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
-__version__ = '2.0.1' #: current version
-__revised__ = '20181212-165139' #: date of most recent revision
+__version__ = '2.1.0' #: current version
+__revised__ = '20181213-112942' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Tool for interacting with Satellite 6 via REST API'
 __description__ = '''Allows the user to perfrom a variety of actions on a
 Satellite 6 server from any command line without hammer.
 Currently available tasks and relevant actions are:
  - collection [Host Collections] (get, add, remove, lookup, show)
+ - hostlist [print host list]    (---)
  - lce [Life-Cycle Environment]  (get, set, lookup, show)
  - location [Location]           (get, set, lookup, show)
 '''
@@ -495,6 +496,7 @@ class RunOptions(object):
     '''
     _defaults = {
         'authkey': None,
+        'create': False,
         'debug': False,
         'id': None,
         'insecure': 0,
@@ -560,6 +562,13 @@ class RunOptions(object):
         if self._options is not None:
             return self._options.authkey
         return None
+
+    @property
+    def create(self):
+        ''' Class property '''
+        if self._options is not None:
+            return self._options.create
+        return self._defaults['create']
 
     @property
     def configfile(self):
@@ -659,6 +668,8 @@ class RunOptions(object):
         #   These can *not* be set in a config file
         parser.add_option('-c', '--config', dest='configfile', type='string',
                           help='User Satellite config file.', default=None)
+        parser.add_option('--create', dest='create', action='store_true',
+                          help='Create target (if needed).', default=False)
         #   These could be set in a config file
         parser.add_option('-o', '--organization', dest='org_name', type='string',
                           help='Organization name.',
@@ -1770,9 +1781,15 @@ def task_collection(sat6_session, verb, *args):
             raise RuntimeError('Host %s not found.' % args[0])
     elif verb == 'add':
         new_hc = sat6_session.get_hc(args[1])
+        if new_hc is None and options.create:
+            if sat6_session.create_hc(args[1]):
+                new_hc = sat6_session.get_hc(args[1])
+            else:
+                raise RuntimeError('Unable to create %s. %s' %
+                                   (args[1], sat6_session.results['msg']))
         if new_hc is None:
-            raise RuntimeError('"%s" does not exist in org %s.',
-                               args[1], sat6_session.org_id)
+            raise RuntimeError('"%s" does not exist in org %s.' %
+                               (args[1], sat6_session.org_id))
         host = sat6_session.get_host(args[0])
         if host:
             if sat6_session.add_host_hc(host, new_hc):
@@ -1784,8 +1801,8 @@ def task_collection(sat6_session, verb, *args):
     elif verb == 'remove':
         new_hc = sat6_session.get_hc(args[1])
         if new_hc is None:
-            raise RuntimeError('"%s" does not exist in org %s.',
-                               args[1], sat6_session.org_id)
+            raise RuntimeError('"%s" does not exist in org %s.' %
+                               (args[1], sat6_session.org_id))
         host = sat6_session.get_host(args[0])
         if host:
             if sat6_session.remove_host_hc(host, new_hc):
@@ -1799,7 +1816,7 @@ def task_collection(sat6_session, verb, *args):
         if hcollec:
             print(hcollec['name'])
         else:
-            raise RuntimeError('"%s" does not translate to a valid LCE.', args[0])
+            raise RuntimeError('"%s" does not translate to a valid LCE.' % args[0])
     elif verb == 'show':
         print('%-35s: %s' % ('Name', 'Host count'))
         print('=' * 70)
@@ -1843,14 +1860,14 @@ def task_lce(sat6_session, verb, *args):
             if 'content_facet_attributes' in host:
                 print('%s' % host['content_facet_attributes']['lifecycle_environment']['name'])
             else:
-                raise RuntimeError('%s has no lce', host['name'])
+                raise RuntimeError('%s has no lce' % host['name'])
         else:
-            raise RuntimeError('Host %s not found.', args[0])
+            raise RuntimeError('Host %s not found.' % args[0])
     elif verb == 'set':
         new_lce = sat6_session.lookup_lce_name(args[1])
         if new_lce is None:
-            raise RuntimeError('"%s" does not exist in org %s.',
-                               args[1], sat6_session.org_id)
+            raise RuntimeError('"%s" does not exist in org %s.' %
+                               (args[1], sat6_session.org_id))
         host = sat6_session.get_host(args[0])
         if host:
             if sat6_session.set_host_lce(host, new_lce):
@@ -1864,13 +1881,13 @@ def task_lce(sat6_session, verb, *args):
         if lce:
             print(lce)
         else:
-            raise RuntimeError('"%s" does not translate to a valid LCE.', args[0])
+            raise RuntimeError('"%s" does not translate to a valid LCE.' % args[0])
     elif verb == 'show':
         _ = sat6_session.lookup_lce_name('qa')
         print('%-35s: %s' % ('Possible Values', 'Target LCE'))
         print('=' * 70)
         for key, value in sorted(sat6_session.lutables['lce'].iteritems(),
-                                 key=lambda (k, v): (v, k)):
+                                 key=(lambda (k, v): (v, k)) ):
             if not key.startswith('_'):
                 print('%s%-35s: %s%s' % (sat6_session.hl_start,
                                          key, value,
@@ -1901,14 +1918,14 @@ def task_location(sat6_session, verb, *args):
     elif verb == 'set':
         new_loc = sat6_session.get_loc(args[1])
         if new_loc is None:
-            raise RuntimeError('"%s" does not exist in org %s.',
-                               args[1], sat6_session.org_id)
+            raise RuntimeError('"%s" does not exist in org %s.' %
+                               (args[1], sat6_session.org_id))
         host = sat6_session.get_host(args[0])
         if host:
             if sat6_session.set_host_loc(host, new_loc):
                 print('%s: %s' % (host['name'], sat6_session.results['msg']))
             else:
-                raise RuntimeError('%s: %s', host['name'], sat6_session.results['msg'])
+                raise RuntimeError('%s: %s' % (host['name'], sat6_session.results['msg']))
         else:
             raise RuntimeError('Host %s not found.' % args[0])
     elif verb == 'lookup':
@@ -1916,7 +1933,7 @@ def task_location(sat6_session, verb, *args):
         if loc:
             print(loc['title'])
         else:
-            raise RuntimeError('"%s" does not translate to a valid LCE.', args[0])
+            raise RuntimeError('"%s" does not translate to a valid LCE.' % args[0])
     elif verb == 'show':
         print('%-35s: %s' % ('Title', 'Parent'))
         print('=' * 70)
@@ -1941,6 +1958,7 @@ def task__experiment(sat6_session, *args):
     if args:
         logger.debug('With args: %s' % args)
 
+    print(options.create)
     # my_hc = sat6_session.get_hc('et_dse_linux')
     # print(sat6_session.results)
     # print(my_hc['id'])
