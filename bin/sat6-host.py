@@ -87,8 +87,8 @@ if sys.version_info <= (2, 6):
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
-__version__ = '2.1.2' #: current version
-__revised__ = '20181213-125720' #: date of most recent revision
+__version__ = '2.1.3' #: current version
+__revised__ = '20181213-170211' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Tool for interacting with Satellite 6 via REST API'
 __description__ = '''Allows the user to perfrom a variety of actions on a
@@ -829,25 +829,35 @@ class Sat6Object(object):
             logger.debug('Final URL: %s', results.url)
             logger.debug('Return Headers: %s', results.headers)
             logger.debug('Status Code: %s', results.status_code)
-            if self.verbose:
-                logger.debug('Raw return: %s', results.raw)
-        except requests.ConnectionError as error:
-            logger.debug('Caught Requests Connection Error.')
-            error.message = '[ConnectionError]: %s' % (error.message) #: pylint: disable=no-member
-            raise error
-        except requests.HTTPError as error:
+            logger.debug('Results: %s', results.content)
+            if not results.ok:
+                if 'error' in results.json():
+                    if 'full_messages' in results.json()['error']:
+                        logger.error('\n'.join(results.json()['error']['full_messages']))
+                    else:
+                        logger.error('Sorry, no further info, try --debug.')
+                elif 'displayMessage' in results.json():
+                    logger.debug(results.json()['displayMessage'])
+                    logger.error('Sorry, no useful info, try --debug.')
+                else:
+                    logger.error('Sorry, no error info, try --debug.')
+            results.raise_for_status()
+        except requests.exceptions.HTTPError as error:
             logger.debug('Caught Requests HTTP Error.')
             error.message = '[HTTPError]: %s' % (error.message) #: pylint: disable=no-member
             raise error
-        except requests.Timeout as error:
+        except requests.exceptions.ConnectionError as error:
+            logger.debug('Caught Requests Connection Error.')
+            error.message = '[ConnectionError]: %s' % (error.message) #: pylint: disable=no-member
+            raise error
+        except requests.exceptions.Timeout as error:
             logger.debug('Caught Requests Timeout.')
             error.message = '[Timeout]: %s' % (error.message) #: pylint: disable=no-member
             raise error
-        except Exception as error:
+        except requests.exceptions.RequestException as error:
             logger.debug('Caught Requests Exception.')
             error.message = '[Requests]: REST call failed: %s' % (error.message) #: pylint: disable=no-member
             raise error
-        results.raise_for_status()
 
         rjson = results.json()
         if self.verbose:
@@ -882,25 +892,35 @@ class Sat6Object(object):
             logger.debug('Final URL: %s', results.url)
             logger.debug('Return Headers: %s', results.headers)
             logger.debug('Status Code: %s', results.status_code)
-            if self.verbose:
-                logger.debug('Raw results: %s', results.raw)
-        except requests.ConnectionError as error:
-            logger.debug('Caught Requests Connection Error.')
-            error.message = '[ConnectionError]: %s' % (error.message) #: pylint: disable=no-member
-            raise error
-        except requests.HTTPError as error:
+            logger.debug('Results: %s', results.content)
+            if not results.ok:
+                if 'error' in results.json():
+                    if 'full_messages' in results.json()['error']:
+                        logger.error('\n'.join(results.json()['error']['full_messages']))
+                    else:
+                        logger.error('Sorry, no further info, try --debug.')
+                elif 'displayMessage' in results.json():
+                    logger.debug(results.json()['displayMessage'])
+                    logger.error('Sorry, no useful info, try --debug.')
+                else:
+                    logger.error('Sorry, no error info, try --debug.')
+            results.raise_for_status()
+        except requests.exceptions.HTTPError as error:
             logger.debug('Caught Requests HTTP Error.')
             error.message = '[HTTPError]: %s' % (error.message) #: pylint: disable=no-member
             raise error
-        except requests.Timeout as error:
+        except requests.exceptions.ConnectionError as error:
+            logger.debug('Caught Requests Connection Error.')
+            error.message = '[ConnectionError]: %s' % (error.message) #: pylint: disable=no-member
+            raise error
+        except requests.exceptions.Timeout as error:
             logger.debug('Caught Requests Timeout.')
             error.message = '[Timeout]: %s' % (error.message) #: pylint: disable=no-member
             raise error
-        except Exception as error:
+        except requests.exceptions.RequestException as error:
             logger.debug('Caught Requests Exception.')
             error.message = '[Requests]: REST call failed: %s' % (error.message) #: pylint: disable=no-member
             raise error
-        results.raise_for_status()
 
         rjson = results.json()
         if self.verbose:
@@ -935,25 +955,35 @@ class Sat6Object(object):
             logger.debug('Final URL: %s', results.url)
             logger.debug('Return Headers: %s', results.headers)
             logger.debug('Status Code: %s', results.status_code)
-            if self.verbose:
-                logger.debug('Raw results: %s', results.raw)
-        except requests.ConnectionError as error:
-            logger.debug('Caught Requests Connection Error.')
-            error.message = '[ConnectionError]: %s' % (error.message) #: pylint: disable=no-member
-            raise error
-        except requests.HTTPError as error:
+            logger.debug('Results: %s', results.content)
+            if not results.ok:
+                if 'error' in results.json():
+                    if 'full_messages' in results.json()['error']:
+                        logger.error('\n'.join(results.json()['error']['full_messages']))
+                    else:
+                        logger.error('Sorry, no further info, try --debug.')
+                elif 'displayMessage' in results.json():
+                    logger.debug(results.json()['displayMessage'])
+                    logger.error('Sorry, no useful info, try --debug.')
+                else:
+                    logger.error('Sorry, no error info, try --debug.')
+            results.raise_for_status()
+        except requests.exceptions.HTTPError as error:
             logger.debug('Caught Requests HTTP Error.')
             error.message = '[HTTPError]: %s' % (error.message) #: pylint: disable=no-member
             raise error
-        except requests.Timeout as error:
+        except requests.exceptions.ConnectionError as error:
+            logger.debug('Caught Requests Connection Error.')
+            error.message = '[ConnectionError]: %s' % (error.message) #: pylint: disable=no-member
+            raise error
+        except requests.exceptions.Timeout as error:
             logger.debug('Caught Requests Timeout.')
             error.message = '[Timeout]: %s' % (error.message) #: pylint: disable=no-member
             raise error
-        except Exception as error:
+        except requests.exceptions.RequestException as error:
             logger.debug('Caught Requests Exception.')
             error.message = '[Requests]: REST call failed: %s' % (error.message) #: pylint: disable=no-member
             raise error
-        results.raise_for_status()
 
         rjson = results.json()
         if self.verbose:
