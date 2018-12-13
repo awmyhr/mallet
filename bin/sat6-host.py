@@ -87,8 +87,8 @@ if sys.version_info <= (2, 6):
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
-__version__ = '2.1.1' #: current version
-__revised__ = '20181213-124302' #: date of most recent revision
+__version__ = '2.1.2' #: current version
+__revised__ = '20181213-125720' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Tool for interacting with Satellite 6 via REST API'
 __description__ = '''Allows the user to perfrom a variety of actions on a
@@ -1782,6 +1782,7 @@ def task_collection(sat6_session, verb, *args):
     elif verb == 'add':
         new_hc = sat6_session.get_hc(args[1])
         if new_hc is None and options.create:
+            logger.debug('collection does not exist, attempting to create.')
             if sat6_session.create_hc(args[1]):
                 new_hc = sat6_session.get_hc(args[1])
             else:
@@ -1792,7 +1793,7 @@ def task_collection(sat6_session, verb, *args):
                                (args[1], sat6_session.org_id))
         host = sat6_session.get_host(args[0])
         if host:
-            if sat6_session.add_host_hc(host, new_hc):
+            if sat6_session.add_host_hc(host, args[1]):
                 print('%s: %s' % (host['name'], sat6_session.results['msg']))
             else:
                 raise RuntimeError('%s: %s', host['name'], sat6_session.results['msg'])
@@ -1805,7 +1806,7 @@ def task_collection(sat6_session, verb, *args):
                                (args[1], sat6_session.org_id))
         host = sat6_session.get_host(args[0])
         if host:
-            if sat6_session.remove_host_hc(host, new_hc):
+            if sat6_session.remove_host_hc(host, args[1]):
                 print('%s: %s' % (host['name'], sat6_session.results['msg']))
             else:
                 raise RuntimeError('%s: %s', host['name'], sat6_session.results['msg'])
