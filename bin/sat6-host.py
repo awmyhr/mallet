@@ -88,8 +88,8 @@ if sys.version_info <= (2, 6):
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
-__version__ = '2.4.2' #: current version
-__revised__ = '20181214-133953' #: date of most recent revision
+__version__ = '2.5.0' #: current version
+__revised__ = '20181214-145931' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Tool for interacting with Satellite 6 via REST API'
 __description__ = '''Allows the user to perfrom a variety of actions on a
@@ -97,6 +97,7 @@ Satellite 6 server from any command line without hammer.
 
 Currently available tasks and relevant actions are:
  - collection [Host Collections] (get, add, remove, lookup, list)
+ - cview      [Content View]     (get, set, lookup, list)
  - errata     [Errata Counts]    (get, lookup, list)
  - host       [Host Info]        (get, lookup, list)
  - lce        [Life-Cycle Env]   (get, set, lookup, list)
@@ -1036,6 +1037,69 @@ class Sat6Object(object):
             item += 1
             page_item += 1
 
+    def get_cv(self, cview=None):
+        ''' Returns info about a Satellite 6 content view.
+            If content view is an integer (i.e., self.org_id), will return
+            detailed info about that specific org.
+            Otherwise will run a search for string passed. If only one result
+            is found, will return some very basic info about said org.
+
+        Args:
+            content view (str/int): Name of content view to find.
+
+        Returns:
+            Basic info of content view (dict). Of particular value may be
+            return['name']
+            return['id']
+            return['title']
+            return['label']
+            return['description']
+
+        '''
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        if cview is None:
+            logger.debug('Was not given cview to find.')
+            return None
+        logger.debug('Looking for cview: %s', cview)
+        self.results = {"success": None, "msg": None, "return": None}
+
+        if isinstance(cview, int):
+            results = self._rest_call('get', '%s/content_views/%s' % (self.katello, cview))
+            if 'error' in results:
+                #-- This is not likely to execute, as if the host ID is not
+                #   found a 404 is thrown, which is caught by the exception
+                #   handling mechanism, and the program will bomb out.
+                #   Not sure I want to change that...
+                self.results['success'] = False
+                self.results['msg'] = 'Warning: No Location ID %s.' % cview
+                self.results['return'] = results
+            else:
+                self.results['success'] = True
+                self.results['msg'] = 'Success: Location ID %s found.' % cview
+                self.results['return'] = results
+        else:
+            search_str = 'name~"%s"' % cview
+
+            results = self._rest_call('get', '%s/content_views/' % (self.katello),
+                                          urlencode([('search', '' + str(search_str))]))
+            if results['subtotal'] == 0:
+                self.results['success'] = False
+                self.results['msg'] = 'Warning: No cview matches for %s.' % cview
+                self.results['return'] = results['results']
+            elif results['subtotal'] > 1:
+                self.results['success'] = False
+                self.results['msg'] = 'Warning: Too many cview matches for %s (%s).' % (cview, results['total'])
+                self.results['return'] = results['results']
+            else:
+                self.results['success'] = True
+                self.results['msg'] = 'Success: cview %s found.' % cview
+                self.results['return'] = results['results'][0]
+
+        logger.debug(self.results['msg'])
+        if self.results['success']:
+            return self.results['return']
+        return None
+
     def get_cv_list(self):
         ''' This returns a list of Satellite 6 content views.
 
@@ -1435,6 +1499,68 @@ class Sat6Object(object):
             item += 1
             page_item += 1
 
+    def set_host_cv(self, host, cview):
+        ''' Set the Content View of a Sat6 host
+
+         Args:
+            host:           Host to change
+            cview:          New CView to set
+
+        Returns:
+            Status of request. Will set self.results
+
+       '''
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        self.results = {"success": None, "msg": None, "return": None}
+        if host is None:
+            self.results['success'] = False
+            self.results['msg'] = 'Passed host is None.'
+        elif 'id' not in host:
+            logger.debug('Host does not have ID attribute, attempting lookup for: %s.', host)
+            host = self.get_host(host)
+        #-- We rely on the fact that get_host will set self.results appropriately
+        if self.results['success'] is False:
+            logger.debug(self.results['msg'])
+            return False
+
+        if cview is None:
+            self.results['success'] = False
+            self.results['msg'] = 'Passed CView is None.'
+        #-- We rely on the fact that get_org_lce will set self.results appropriately
+        elif 'id' not in cview:
+            logger.debug('CView does not have ID attribute, attempting lookup for: %s.', cview)
+            cview = self.get_cv(cview)
+        if self.results['success'] is False:
+            logger.debug(self.results['msg'])
+            return False
+
+        if 'content_facet_attributes' not in host:
+            self.results['success'] = False
+            self.results['msg'] = '%s is not a content host.' % (host['name'])
+            return False
+
+        if host['content_facet_attributes']['content_view']['id'] == cview['id']:
+            self.results['return'] = host
+            self.results['success'] = True
+            self.results['msg'] = 'CView was already %s, no change needed.' % (cview['name'])
+            return True
+
+        results = self._rest_call('put', '%s/hosts/%s' % (self.foreman, host['id']),
+                                      data={'host': {'content_facet_attributes':
+                                                    {'content_view_id': cview['id']}
+                                               }}
+                                     )
+        if results['content_facet_attributes']['content_view']['id'] == cview['id']:
+            self.results['return'] = results
+            self.results['success'] = True
+            self.results['msg'] = 'CView changed to %s.' % (cview['name'])
+            return True
+
+        self.results['return'] = results
+        self.results['success'] = False
+        self.results['msg'] = 'CView not set, cause unknown.'
+        return False
+
     def set_host_lce(self, host, lce):
         ''' Set the LifeCycle Environment of a Sat6 host
 
@@ -1726,7 +1852,7 @@ def task_collection(sat6_session, verb, *args):
         if hcollec:
             print(hcollec['name'])
         else:
-            raise RuntimeError('"%s" does not translate to a valid LCE.' % args[0])
+            raise RuntimeError('"%s" not found.' % args[0])
     elif verb == 'list':
         print('%-35s: %s' % ('Name', 'Host count'))
         print('=' * 70)
@@ -1738,6 +1864,54 @@ def task_collection(sat6_session, verb, *args):
         print('=' * 70)
     else:
         options.parser.error('collection does not support action: %s' % verb)
+    return True
+
+
+#==============================================================================
+def task_cview(sat6_session, verb, *args):
+    ''' Manipulate Locations '''
+    logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+    if args:
+        logger.debug('With verb: %s; and args: %s' % (verb, args))
+
+    if verb == 'get':
+        host = sat6_session.get_host(args[0])
+        if host:
+            if 'content_facet_attributes' in host:
+                print(host['content_facet_attributes']['content_view_name'])
+            else:
+                print('%s is not a content host.' % host['name'])
+        else:
+            raise RuntimeError('Host %s not found.' % args[0])
+    elif verb == 'set':
+        new_cview = sat6_session.get_cv(args[1])
+        if new_cview is None:
+            raise RuntimeError('"%s" does not exist in org %s.' %
+                               (args[1], sat6_session.org_id))
+        host = sat6_session.get_host(args[0])
+        if host:
+            if sat6_session.set_host_cv(host, new_cview):
+                print('%s: %s' % (host['name'], sat6_session.results['msg']))
+            else:
+                raise RuntimeError('%s: %s' % (host['name'], sat6_session.results['msg']))
+        else:
+            raise RuntimeError('Host %s not found.' % args[0])
+    elif verb == 'lookup':
+        cview = sat6_session.get_cv(args[0])
+        if cview:
+            print(cview['name'])
+        else:
+            raise RuntimeError('"%s" not found.' % args[0])
+    elif verb == 'list':
+        print('%-20s: %s' % ('Title', 'Description'))
+        print('=' * 70)
+        for cview in sat6_session.get_cv_list():
+            print('%s%-20s: %s%s' % (sat6_session.hl_start,
+                                     cview['name'], cview['description'],
+                                     sat6_session.hl_end))
+        print('=' * 70)
+    else:
+        options.parser.error('cview does not support action: %s' % verb)
     return True
 
 
@@ -1757,7 +1931,7 @@ def task_errata(sat6_session, verb, *args):
                 print('Security:    %5d' % host['content_facet_attributes']['errata_counts']['security'])
                 print('Total:       %5d' % host['content_facet_attributes']['errata_counts']['total'])
             else:
-                print('Not a content host.')
+                print('%s is not a content host.' % host['name'])
         else:
             raise RuntimeError('Host %s not found.' % args[0])
     elif verb == 'lookup':
@@ -1786,6 +1960,7 @@ def task_errata(sat6_session, verb, *args):
     else:
         options.parser.error('errata does not support action: %s' % verb)
     return True
+
 
 #==============================================================================
 def task_host(sat6_session, verb, *args):
@@ -1851,6 +2026,7 @@ def task_host(sat6_session, verb, *args):
         options.parser.error('host does not support action: %s' % verb)
     return True
 
+
 #==============================================================================
 def task_lce(sat6_session, verb, *args):
     ''' Manipulate Life-Cycle Environments '''
@@ -1864,7 +2040,7 @@ def task_lce(sat6_session, verb, *args):
             if 'content_facet_attributes' in host:
                 print('%s' % host['content_facet_attributes']['lifecycle_environment']['name'])
             else:
-                raise RuntimeError('%s has no lce' % host['name'])
+                print('%s is not a content host.' % host['name'])
         else:
             raise RuntimeError('Host %s not found.' % args[0])
     elif verb == 'set':
@@ -1885,7 +2061,7 @@ def task_lce(sat6_session, verb, *args):
         if lce:
             print(lce)
         else:
-            raise RuntimeError('"%s" does not translate to a valid LCE.' % args[0])
+            raise RuntimeError('"%s" not found.' % args[0])
     elif verb == 'list':
         _ = sat6_session.lookup_lce_name('qa')
         print('%-35s: %s' % ('Possible Values', 'Target LCE'))
@@ -1937,7 +2113,7 @@ def task_location(sat6_session, verb, *args):
         if loc:
             print(loc['title'])
         else:
-            raise RuntimeError('"%s" does not translate to a valid LCE.' % args[0])
+            raise RuntimeError('"%s" not found.' % args[0])
     elif verb == 'list':
         print('%-35s: %s' % ('Title', 'Parent'))
         print('=' * 70)
@@ -2044,6 +2220,8 @@ def main():
 
     if task == 'collection':
         task_collection(sat6_session, verb, *options.args[2:])
+    elif task == 'cview':
+        task_cview(sat6_session, verb, *options.args[2:])
     elif task == 'errata':
         task_errata(sat6_session, verb, *options.args[2:])
     elif task == 'host':
