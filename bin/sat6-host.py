@@ -87,15 +87,15 @@ if sys.version_info <= (2, 6):
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
-__version__ = '2.4.0' #: current version
-__revised__ = '20181214-131103' #: date of most recent revision
+__version__ = '2.4.1' #: current version
+__revised__ = '20181214-131551' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Tool for interacting with Satellite 6 via REST API'
 __description__ = '''Allows the user to perfrom a variety of actions on a
 Satellite 6 server from any command line without hammer.
 Currently available tasks and relevant actions are:
  - collection [Host Collections] (get, add, remove, lookup, list)
- - errata     [Errata Counts]    (get, list)
+ - errata     [Errata Counts]    (get, lookup, list)
  - host       [Host Info]        (get, lookup, list)
  - lce        [Life-Cycle Env]   (get, set, lookup, list)
  - location   [Location]         (get, set, lookup, list)
@@ -1761,7 +1761,10 @@ def task_errata(sat6_session, verb, *args):
     elif verb == 'lookup':
         host = sat6_session.get_host(args[0])
         if host:
-            print(host['errata_status_label'])
+            if 'errata_status_label' in host:
+                print(host['errata_status_label'])
+            else:
+                print('Not a content host.')
         else:
             raise RuntimeError('Host %s not found.' % args[0])
     elif verb == 'list':
