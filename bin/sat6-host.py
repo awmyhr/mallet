@@ -87,17 +87,17 @@ if sys.version_info <= (2, 6):
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
-__version__ = '2.2.0' #: current version
-__revised__ = '20181214-102145' #: date of most recent revision
+__version__ = '2.3.0' #: current version
+__revised__ = '20181214-124229' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Tool for interacting with Satellite 6 via REST API'
 __description__ = '''Allows the user to perfrom a variety of actions on a
 Satellite 6 server from any command line without hammer.
 Currently available tasks and relevant actions are:
- - collection [Host Collections] (get, add, remove, lookup, show)
- - hostlist [print host list]    (---)
- - lce [Life-Cycle Environment]  (get, set, lookup, show)
- - location [Location]           (get, set, lookup, show)
+ - collection [Host Collections] (get, add, remove, lookup, list)
+ - host       [Host Info]        (get, list)
+ - lce        [Life-Cycle Env]   (get, set, lookup, list)
+ - location   [Location]         (get, set, lookup, list)
 '''
 #------------------------------------------------------------------------------
 #-- The following few variables should be relatively static over life of script
@@ -655,7 +655,7 @@ class RunOptions(object):
         usage_string = ('%s [options] <task> get <hostname>\n'
                         '  or:  %s [options] <task> <add|remove|set> <hostname> <target>\n'
                         '  or:  %s [options] <task> lookup <target>\n'
-                        '  or:  %s [options] <task> show') % (
+                        '  or:  %s [options] <task> list') % (
                             __basename__, __basename__, __basename__, __basename__)
         version_string = '%s (%s) %s' % (__cononical_name__, __project_name__, __version__)
         if __gnu_version__:
@@ -1724,7 +1724,7 @@ def task_collection(sat6_session, verb, *args):
             print(hcollec['name'])
         else:
             raise RuntimeError('"%s" does not translate to a valid LCE.' % args[0])
-    elif verb == 'show':
+    elif verb == 'list':
         print('%-35s: %s' % ('Name', 'Host count'))
         print('=' * 70)
         for hcollec in sat6_session.get_hc_list():
@@ -1739,19 +1739,67 @@ def task_collection(sat6_session, verb, *args):
 
 
 #==============================================================================
-def task_hostlist(sat6_session):
+def task_host(sat6_session, verb, *args):
     ''' Print host list '''
     logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+    if args:
+        logger.debug('With verb: %s; and args: %s' % (verb, args))
 
-    print('Retrieving host list. This could take quite some time...')
+    if verb == 'get':
+        host = sat6_session.get_host(args[0])
+        if host:
+            print(host['name'], end ="")
+            if host['name'] != host['certname']:
+                print("(%s)" % host['certname'], end ="")
+            if host['ip'] is not None:
+                print(" [%s]" % host['ip'], end ="")
+            print()
 
-    for host in sat6_session.get_host_list():
-        if 'content_facet_attributes' in host:
-            print("ID: %6s  Name: %35s  LCE: %s" %
-                  (host['id'], host['name'],
-                   host['content_facet_attributes']['lifecycle_environment']['name']))
+            print('%s - %s' % (host['organization_name'],host['location_name']))
+            if host['operatingsystem_name'] is not None:
+                print('OS: %s' % host['operatingsystem_name'])
+            if 'model_name' in host and host['model_name'] is not None:
+                print('Model: %s' % host['model_name'])
+            print('Status: %s' % host['subscription_status_label'])
+
+            if len(host['subscription_facet_attributes']['virtual_guests']) > 0:
+                print('Guests: ', end ="")
+                for guest in host['subscription_facet_attributes']['virtual_guests']:
+                    print(guest['name'], end =" ")
+                print()
+            if host['subscription_facet_attributes']['virtual_host'] is not None:
+                print('Hypervisor: %s' % host['subscription_facet_attributes']['virtual_host']['name'])
+            if 'content_facet_attributes' in host:
+                print('CV:  %s' % host['content_facet_attributes']['content_view_name'])
+                print('LCE: %s' % host['content_facet_attributes']['lifecycle_environment_name'])
+                print('Errata needed: %s' % host['content_facet_attributes']['errata_counts']['total'])
+            else:
+                print('Not a content host.')
         else:
-            print("ID: %6s  Name: %35s" % (host['id'], host['name']))
+            raise RuntimeError('Host %s not found.' % args[0])
+    elif verb == 'lookup':
+        host = sat6_session.get_host(args[0])
+        if host:
+            print(host['subscription_status_label'])
+        else:
+            raise RuntimeError('Host %s not found.' % args[0])
+    elif verb == 'list':
+        print('Retrieving host list. This could take quite some time...')
+        print('%-35s: %s' % ('Name', 'Life-Cycle Environment'))
+        print('=' * 70)
+        for host in sat6_session.get_host_list():
+            if 'content_facet_attributes' in host:
+                print('%s%-35s: %s%s' % (sat6_session.hl_start,
+                                         host['name'],
+                                         host['content_facet_attributes']['lifecycle_environment']['name'],
+                                         sat6_session.hl_end))
+            else:
+                print('%s%-35s: %s' %   (sat6_session.hl_start,
+                                         host['name'],
+                                         sat6_session.hl_end))
+        print('=' * 70)
+    else:
+        options.parser.error('collection does not support action: %s' % verb)
     return True
 
 #==============================================================================
@@ -1789,7 +1837,7 @@ def task_lce(sat6_session, verb, *args):
             print(lce)
         else:
             raise RuntimeError('"%s" does not translate to a valid LCE.' % args[0])
-    elif verb == 'show':
+    elif verb == 'list':
         _ = sat6_session.lookup_lce_name('qa')
         print('%-35s: %s' % ('Possible Values', 'Target LCE'))
         print('=' * 70)
@@ -1841,7 +1889,7 @@ def task_location(sat6_session, verb, *args):
             print(loc['title'])
         else:
             raise RuntimeError('"%s" does not translate to a valid LCE.' % args[0])
-    elif verb == 'show':
+    elif verb == 'list':
         print('%-35s: %s' % ('Title', 'Parent'))
         print('=' * 70)
         for loc in sat6_session.get_loc_list():
@@ -1927,7 +1975,7 @@ def main():
     task = options.args[0]
     if len(options.args) >= 2:
         verb = options.args[1]
-        if verb not in ['get', 'add', 'remove', 'set', 'lookup', 'show']:
+        if verb not in ['get', 'add', 'remove', 'set', 'lookup', 'list']:
             options.parser.error('Unknown action: %s' % verb)
         if verb == 'get' and len(options.args) != 3:
             options.parser.error('Action get requires only a hostname.')
@@ -1939,16 +1987,16 @@ def main():
             options.parser.error('Action set requires a hostname and target.')
         elif verb == 'lookup' and len(options.args) != 3:
             options.parser.error('Action lookup requires only a target.')
-        elif verb == 'show' and len(options.args) != 2:
-            options.parser.error('Action show accepts no arguments.')
+        elif verb == 'list' and len(options.args) != 2:
+            options.parser.error('Action list accepts no arguments.')
         logger.debug('Was asked to %s' % verb)
     else:
         verb = None
 
     if task == 'collection':
         task_collection(sat6_session, verb, *options.args[2:])
-    elif task == 'hostlist':
-        task_hostlist(sat6_session)
+    elif task == 'host':
+        task_host(sat6_session, verb, *options.args[2:])
     elif task == 'lce':
         task_lce(sat6_session, verb, *options.args[2:])
     elif task == 'location':
