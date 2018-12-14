@@ -87,8 +87,8 @@ if sys.version_info <= (2, 6):
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
-__version__ = '2.1.3' #: current version
-__revised__ = '20181213-170211' #: date of most recent revision
+__version__ = '2.2.0' #: current version
+__revised__ = '20181214-102145' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Tool for interacting with Satellite 6 via REST API'
 __description__ = '''Allows the user to perfrom a variety of actions on a
@@ -802,11 +802,12 @@ class Sat6Object(object):
         except ValueError:
             return False
 
-    def _get_rest_call(self, url, params=None, data=None):
-        ''' Call a REST API URL using GET.
+    def _rest_call(self, method, url, params=None, data=None, jsonin=None):
+        ''' Call a REST API URL using method.
 
         Args:
             session_obj (obj): Session object
+            method (str):      One of: get, put, post
             url (str):         URL of API
             params (dict):     Dict of params to pass to Requests.get
 
@@ -817,27 +818,34 @@ class Sat6Object(object):
         logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
 
         logger.debug('Calling URL: %s', url)
+        logger.debug('Using method: %s', method)
         logger.debug('With Headers: %s', self.connection.headers)
         if params is not None:
             logger.debug('With params: %s', params)
+        if jsonin is not None:
+            logger.debug('With json: %s', jsonin)
         if data is not None:
             logger.debug('With data: %s', data)
             data = json.dumps(data)
 
         try:
-            results = self.connection.get(url, params=params, data=data)
+            results = self.connection.request(method, url, params=params, data=data, json=jsonin)
             logger.debug('Final URL: %s', results.url)
             logger.debug('Return Headers: %s', results.headers)
             logger.debug('Status Code: %s', results.status_code)
             logger.debug('Results: %s', results.content)
+            rjson = results.json()
             if not results.ok:
-                if 'error' in results.json():
-                    if 'full_messages' in results.json()['error']:
-                        logger.error('\n'.join(results.json()['error']['full_messages']))
+                if self.verbose:
+                    logger.debug('Results: %s', rjson)
+                if 'error' in rjson:
+                    logger.debug('Requests API call returned error.')
+                    if 'full_messages' in rjson['error']:
+                        logger.error('\n'.join(rjson['error']['full_messages']))
                     else:
                         logger.error('Sorry, no further info, try --debug.')
-                elif 'displayMessage' in results.json():
-                    logger.debug(results.json()['displayMessage'])
+                elif 'displayMessage' in rjson:
+                    logger.debug(rjson['displayMessage'])
                     logger.error('Sorry, no useful info, try --debug.')
                 else:
                     logger.error('Sorry, no error info, try --debug.')
@@ -859,139 +867,6 @@ class Sat6Object(object):
             error.message = '[Requests]: REST call failed: %s' % (error.message) #: pylint: disable=no-member
             raise error
 
-        rjson = results.json()
-        if self.verbose:
-            logger.debug('Results: %s', rjson)
-
-        if rjson.get('error'):
-            logger.debug('Requests API call returned error.')
-            raise IOError(127, '[Requests]: API call failed: %s' % (rjson['error']['message']))
-        return rjson
-
-    def _put_rest_call(self, url, data=None):
-        ''' Call a REST API URL using PUT .
-
-        Args:
-            session_obj (obj): Session object
-            url (str):         URL of API
-            data (dict):       Dict of data to pass to Requests.put
-
-        Returns:
-            Results of API call in a dict
-
-        '''
-        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
-
-        logger.debug('Calling URL: %s', url)
-        if data is not None:
-            logger.debug('With data: %s', data)
-            data = json.dumps(data)
-
-        try:
-            results = self.connection.put(url, data=data)
-            logger.debug('Final URL: %s', results.url)
-            logger.debug('Return Headers: %s', results.headers)
-            logger.debug('Status Code: %s', results.status_code)
-            logger.debug('Results: %s', results.content)
-            if not results.ok:
-                if 'error' in results.json():
-                    if 'full_messages' in results.json()['error']:
-                        logger.error('\n'.join(results.json()['error']['full_messages']))
-                    else:
-                        logger.error('Sorry, no further info, try --debug.')
-                elif 'displayMessage' in results.json():
-                    logger.debug(results.json()['displayMessage'])
-                    logger.error('Sorry, no useful info, try --debug.')
-                else:
-                    logger.error('Sorry, no error info, try --debug.')
-            results.raise_for_status()
-        except requests.exceptions.HTTPError as error:
-            logger.debug('Caught Requests HTTP Error.')
-            error.message = '[HTTPError]: %s' % (error.message) #: pylint: disable=no-member
-            raise error
-        except requests.exceptions.ConnectionError as error:
-            logger.debug('Caught Requests Connection Error.')
-            error.message = '[ConnectionError]: %s' % (error.message) #: pylint: disable=no-member
-            raise error
-        except requests.exceptions.Timeout as error:
-            logger.debug('Caught Requests Timeout.')
-            error.message = '[Timeout]: %s' % (error.message) #: pylint: disable=no-member
-            raise error
-        except requests.exceptions.RequestException as error:
-            logger.debug('Caught Requests Exception.')
-            error.message = '[Requests]: REST call failed: %s' % (error.message) #: pylint: disable=no-member
-            raise error
-
-        rjson = results.json()
-        if self.verbose:
-            logger.debug('Results: %s', rjson)
-
-        if 'error' in rjson:
-            logger.debug('Requests API call returned error.')
-            raise IOError(127, '[Requests]: API call failed: %s' % (rjson['error']['message']))
-        return rjson
-
-    def _post_rest_call(self, url, data=None):
-        ''' Call a REST API URL using POST .
-
-        Args:
-            session_obj (obj): Session object
-            url (str):         URL of API
-            data (dict):       Dict of data to pass to Requests.put
-
-        Returns:
-            Results of API call in a dict
-
-        '''
-        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
-
-        logger.debug('Calling URL: %s', url)
-        if data is not None:
-            logger.debug('With data: %s', data)
-            data = json.dumps(data)
-
-        try:
-            results = self.connection.post(url, data=data)
-            logger.debug('Final URL: %s', results.url)
-            logger.debug('Return Headers: %s', results.headers)
-            logger.debug('Status Code: %s', results.status_code)
-            logger.debug('Results: %s', results.content)
-            if not results.ok:
-                if 'error' in results.json():
-                    if 'full_messages' in results.json()['error']:
-                        logger.error('\n'.join(results.json()['error']['full_messages']))
-                    else:
-                        logger.error('Sorry, no further info, try --debug.')
-                elif 'displayMessage' in results.json():
-                    logger.debug(results.json()['displayMessage'])
-                    logger.error('Sorry, no useful info, try --debug.')
-                else:
-                    logger.error('Sorry, no error info, try --debug.')
-            results.raise_for_status()
-        except requests.exceptions.HTTPError as error:
-            logger.debug('Caught Requests HTTP Error.')
-            error.message = '[HTTPError]: %s' % (error.message) #: pylint: disable=no-member
-            raise error
-        except requests.exceptions.ConnectionError as error:
-            logger.debug('Caught Requests Connection Error.')
-            error.message = '[ConnectionError]: %s' % (error.message) #: pylint: disable=no-member
-            raise error
-        except requests.exceptions.Timeout as error:
-            logger.debug('Caught Requests Timeout.')
-            error.message = '[Timeout]: %s' % (error.message) #: pylint: disable=no-member
-            raise error
-        except requests.exceptions.RequestException as error:
-            logger.debug('Caught Requests Exception.')
-            error.message = '[Requests]: REST call failed: %s' % (error.message) #: pylint: disable=no-member
-            raise error
-
-        rjson = results.json()
-        if self.verbose:
-            logger.debug('Results: %s', rjson)
-
-        if 'error' in rjson:
-            logger.debug('Requests API call returned error.')
-            raise IOError(127, '[Requests]: API call failed: %s' % (rjson['error']['message']))
         return rjson
 
     def _new_connection(self, authkey=None, insecure=None, token=None, client_id=None):
@@ -1062,7 +937,7 @@ class Sat6Object(object):
 
         if 'lce' not in self.lutables:
             logger.debug('First time calling function, loading table.')
-            self.lutables['lce'] = self._get_rest_call('%s/%s' % (self.pub,
+            self.lutables['lce'] = self._rest_call('get', '%s/%s' % (self.pub,
                                                                   self.lookup_tables['lce']))
             if '_revision' in self.lutables['lce']:
                 logger.debug('LCE Table revision: %s', self.lutables['lce']['_revision'])
@@ -1098,7 +973,7 @@ class Sat6Object(object):
             self.results['msg'] = 'Error: Hostname passed was type None.'
         else:
             if isinstance(hostname, int):
-                results = self._get_rest_call('%s/hosts/%s' % (self.foreman, hostname))
+                results = self._rest_call('get', '%s/hosts/%s' % (self.foreman, hostname))
                 if 'error' in results:
                     #-- This is not likely to execute, as if the host ID is not
                     #   found a 404 is thrown, which is caught by the exception
@@ -1114,7 +989,7 @@ class Sat6Object(object):
             else:
                 if not self._is_valid_ipv4(hostname):
                     hostname = hostname.split('.')[0]
-                results = self._get_rest_call('%s/hosts' % (self.foreman),
+                results = self._rest_call('get', '%s/hosts' % (self.foreman),
                                               {'search':  'name~%s' % hostname})
                 if results['subtotal'] == 0:
                     self.results['success'] = False
@@ -1127,7 +1002,7 @@ class Sat6Object(object):
                 else:
                     self.results['success'] = True
                     self.results['msg'] = 'Success: Hostname %s found.' % hostname
-                    self.results['return'] = self._get_rest_call('%s/hosts/%s' % (self.foreman, results['results'][0]['id']))
+                    self.results['return'] = self._rest_call('get', '%s/hosts/%s' % (self.foreman, results['results'][0]['id']))
 
         logger.debug(self.results['msg'])
         if self.results['success']:
@@ -1146,13 +1021,13 @@ class Sat6Object(object):
         page_item = 0
         page = 1
 
-        results = self._get_rest_call('%s/hosts' % (self.foreman),
+        results = self._rest_call('get', '%s/hosts' % (self.foreman),
                                       {'page': page, 'per_page': self.per_page})
         while item < results['subtotal']:
             if page_item == self.per_page:
                 page += 1
                 page_item = 0
-                results = self._get_rest_call('%s/hosts' % (self.foreman),
+                results = self._rest_call('get', '%s/hosts' % (self.foreman),
                                               {'page': page, 'per_page': self.per_page})
             yield results['results'][page_item]
             item += 1
@@ -1170,13 +1045,13 @@ class Sat6Object(object):
         page_item = 0
         page = 1
 
-        results = self._get_rest_call('%s/content_views' % (self.katello),
+        results = self._rest_call('get', '%s/content_views' % (self.katello),
                                       {'page': page, 'per_page': self.per_page})
         while item < results['subtotal']:
             if page_item == self.per_page:
                 page += 1
                 page_item = 0
-                results = self._get_rest_call('%s/content_views' % (self.katello),
+                results = self._rest_call('get', '%s/content_views' % (self.katello),
                                               {'page': page, 'per_page': self.per_page})
             yield results['results'][page_item]
             item += 1
@@ -1209,7 +1084,7 @@ class Sat6Object(object):
         self.results = {"success": None, "msg": None, "return": None}
 
         if isinstance(collection, int):
-            results = self._get_rest_call('%s/host_collections/%s' % (self.katello, collection))
+            results = self._rest_call('get', '%s/host_collections/%s' % (self.katello, collection))
             if 'error' in results:
                 #-- This is not likely to execute, as if the host ID is not
                 #   found a 404 is thrown, which is caught by the exception
@@ -1225,7 +1100,7 @@ class Sat6Object(object):
         else:
             search_str = 'name~"%s"' % collection
 
-            results = self._get_rest_call('%s/organizations/%s/host_collections/' % (self.katello, self.org_id),
+            results = self._rest_call('get', '%s/organizations/%s/host_collections/' % (self.katello, self.org_id),
                                           urlencode([('search', '' + str(search_str))]))
             if results['subtotal'] == 0:
                 self.results['success'] = False
@@ -1262,13 +1137,13 @@ class Sat6Object(object):
         page_item = 0
         page = 1
 
-        results = self._get_rest_call('%s/organizations/%s/host_collections' % (self.katello, self.org_id),
+        results = self._rest_call('get', '%s/organizations/%s/host_collections' % (self.katello, self.org_id),
                                       {'page': page, 'per_page': self.per_page})
         while item < results['subtotal']:
             if page_item == self.per_page:
                 page += 1
                 page_item = 0
-                results = self._get_rest_call('%s/organizations/%s/host_collections' % (self.katello, self.org_id),
+                results = self._rest_call('get', '%s/organizations/%s/host_collections' % (self.katello, self.org_id),
                                               {'page': page, 'per_page': self.per_page})
             yield results['results'][page_item]
             item += 1
@@ -1297,8 +1172,9 @@ class Sat6Object(object):
             self.results['msg'] = 'Collection %s exists, nothing to do.' % (collection)
             return True
 
-        results = self._post_rest_call('%s/organizations/%s/host_collections' % (self.katello, self.org_id),
-                                       {'organization_id': self.org_id, 'name': collection})
+        results = self._rest_call('post', '%s/organizations/%s/host_collections' % (self.katello, self.org_id),
+                                  data={'organization_id': self.org_id, 'name': collection}
+                                 )
         if results['id']:
             self.results['return'] = results
             self.results['success'] = True
@@ -1338,7 +1214,7 @@ class Sat6Object(object):
         self.results = {"success": None, "msg": None, "return": None}
 
         if isinstance(organization, int):
-            results = self._get_rest_call('%s/organizations/%s' % (self.katello, organization))
+            results = self._rest_call('get', '%s/organizations/%s' % (self.katello, organization))
             if 'error' in results:
                 #-- This is not likely to execute, as if the host ID is not
                 #   found a 404 is thrown, which is caught by the exception
@@ -1352,7 +1228,7 @@ class Sat6Object(object):
                 self.results['msg'] = 'Success: Organization ID %s found.' % organization
                 self.results['return'] = results
         else:
-            results = self._get_rest_call('%s/organizations' % (self.katello),
+            results = self._rest_call('get', '%s/organizations' % (self.katello),
                                           {'search': organization})
             if results['subtotal'] == 0:
                 self.results['success'] = False
@@ -1384,13 +1260,13 @@ class Sat6Object(object):
         page_item = 0
         page = 1
 
-        results = self._get_rest_call('%s/organizations' % (self.katello),
+        results = self._rest_call('get', '%s/organizations' % (self.katello),
                                       {'page': page, 'per_page': self.per_page})
         while item < results['subtotal']:
             if page_item == self.per_page:
                 page += 1
                 page_item = 0
-                results = self._get_rest_call('%s/organizations' % (self.katello),
+                results = self._rest_call('get', '%s/organizations' % (self.katello),
                                               {'page': page, 'per_page': self.per_page})
             yield results['results'][page_item]
             item += 1
@@ -1417,8 +1293,8 @@ class Sat6Object(object):
             self.results['success'] = False
             self.results['msg'] = 'Error: lce_name passed was type None.'
         else:
-            results = self._get_rest_call('%s/organizations/%s/environments' % (self.katello, org_id),
-                                          {'search': '"%s"' % lce_name})
+            results = self._rest_call('get', '%s/organizations/%s/environments' % (self.katello, org_id),
+                                          params={'search': '"%s"' % lce_name})
             if results['subtotal'] == 0:
                 self.results['success'] = False
                 self.results['msg'] = 'Error: No LCE matches for %s in org %s.' % lce_name, org_id
@@ -1453,13 +1329,13 @@ class Sat6Object(object):
         page_item = 0
         page = 1
 
-        results = self._get_rest_call('%s/organizations/%s/environments' % (self.katello, org_id),
+        results = self._rest_call('get', '%s/organizations/%s/environments' % (self.katello, org_id),
                                       {'page': page, 'per_page': self.per_page})
         while item < results['subtotal']:
             if page_item == self.per_page:
                 page += 1
                 page_item = 0
-                results = self._get_rest_call(
+                results = self._rest_call('get',
                     '%s/organizations/%s/environments' % (self.katello, org_id),
                     {'page': page, 'per_page': self.per_page})
             yield results['results'][page_item]
@@ -1493,7 +1369,7 @@ class Sat6Object(object):
         self.results = {"success": None, "msg": None, "return": None}
 
         if isinstance(location, int):
-            results = self._get_rest_call('%s/locations/%s' % (self.foreman, location))
+            results = self._rest_call('get', '%s/locations/%s' % (self.foreman, location))
             if 'error' in results:
                 #-- This is not likely to execute, as if the host ID is not
                 #   found a 404 is thrown, which is caught by the exception
@@ -1512,7 +1388,7 @@ class Sat6Object(object):
             else:
                 search_str = 'name~"%s"' % location
 
-            results = self._get_rest_call('%s/locations/' % (self.foreman),
+            results = self._rest_call('get', '%s/locations/' % (self.foreman),
                                           urlencode([('search', '' + str(search_str))]))
             if results['subtotal'] == 0:
                 self.results['success'] = False
@@ -1544,13 +1420,13 @@ class Sat6Object(object):
         page_item = 0
         page = 1
 
-        results = self._get_rest_call('%s/locations' % (self.foreman),
+        results = self._rest_call('get', '%s/locations' % (self.foreman),
                                       {'page': page, 'per_page': self.per_page})
         while item < results['subtotal']:
             if page_item == self.per_page:
                 page += 1
                 page_item = 0
-                results = self._get_rest_call('%s/locations' % (self.foreman),
+                results = self._rest_call('get', '%s/locations' % (self.foreman),
                                               {'page': page, 'per_page': self.per_page})
             yield results['results'][page_item]
             item += 1
@@ -1602,8 +1478,8 @@ class Sat6Object(object):
             self.results['msg'] = 'LCE was already %s, no change needed.' % (lce['name'])
             return True
 
-        results = self._put_rest_call('%s/hosts/%s' % (self.foreman, host['id']),
-                                      {'host': {'content_facet_attributes':
+        results = self._rest_call('put', '%s/hosts/%s' % (self.foreman, host['id']),
+                                      data={'host': {'content_facet_attributes':
                                                     {'lifecycle_environment_id': lce['id']}
                                                }}
                                      )
@@ -1659,9 +1535,9 @@ class Sat6Object(object):
             self.results['msg'] = 'Location was already %s, no change needed.' % (location['name'])
             return True
 
-        results = self._put_rest_call('%s/hosts/%s' % (self.foreman, host['id']),
-                                      {'host': {'location_id': location['id']} }
-                                     )
+        results = self._rest_call('put', '%s/hosts/%s' % (self.foreman, host['id']),
+                                  data={'host': {'location_id': location['id']} }
+                                 )
         if results['location_id'] == location['id']:
             self.results['return'] = results
             self.results['success'] = True
@@ -1715,9 +1591,9 @@ class Sat6Object(object):
                 self.results['msg'] = 'Host already in %s, no change needed.' % (collection['name'])
                 return True
 
-        results = self._put_rest_call('%s/host_collections/%s/add_hosts' % (self.katello, collection['id']),
-                                      {'id': collection['id'], 'host_ids': host['id']}
-                                     )
+        results = self._rest_call('put', '%s/host_collections/%s/add_hosts' % (self.katello, collection['id']),
+                                  data={'id': collection['id'], 'host_ids': [host['id']]}
+                                 )
         host = self.get_host(host['id'])
         for _, item in enumerate(host['host_collections']):
             if item['id'] == collection['id']:
@@ -1776,9 +1652,9 @@ class Sat6Object(object):
             self.results['msg'] = 'Host not in %s, no change needed.' % (collection['name'])
             return True
 
-        results = self._put_rest_call('%s/host_collections/%s/remove_hosts' % (self.katello, collection['id']),
-                                      {'id': collection['id'], 'host_ids': host['id']}
-                                     )
+        results = self._rest_call('put', '%s/host_collections/%s/remove_hosts' % (self.katello, collection['id']),
+                                  data={'id': collection['id'], 'host_ids': [host['id']]}
+                                 )
         host = self.get_host(host['id'])
         for _, item in enumerate(host['host_collections']):
             if item['id'] == collection['id']:
