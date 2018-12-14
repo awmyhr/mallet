@@ -87,15 +87,16 @@ if sys.version_info <= (2, 6):
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
-__version__ = '2.3.0' #: current version
-__revised__ = '20181214-124229' #: date of most recent revision
+__version__ = '2.4.0' #: current version
+__revised__ = '20181214-131103' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Tool for interacting with Satellite 6 via REST API'
 __description__ = '''Allows the user to perfrom a variety of actions on a
 Satellite 6 server from any command line without hammer.
 Currently available tasks and relevant actions are:
  - collection [Host Collections] (get, add, remove, lookup, list)
- - host       [Host Info]        (get, list)
+ - errata     [Errata Counts]    (get, list)
+ - host       [Host Info]        (get, lookup, list)
  - lce        [Life-Cycle Env]   (get, set, lookup, list)
  - location   [Location]         (get, set, lookup, list)
 '''
@@ -1739,6 +1740,49 @@ def task_collection(sat6_session, verb, *args):
 
 
 #==============================================================================
+def task_errata(sat6_session, verb, *args):
+    ''' Print host list '''
+    logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+    if args:
+        logger.debug('With verb: %s; and args: %s' % (verb, args))
+
+    if verb == 'get':
+        host = sat6_session.get_host(args[0])
+        if host:
+            if 'content_facet_attributes' in host:
+                print('Bugfix:      %5d' % host['content_facet_attributes']['errata_counts']['bugfix'])
+                print('Enhancement: %5d' % host['content_facet_attributes']['errata_counts']['enhancement'])
+                print('Security:    %5d' % host['content_facet_attributes']['errata_counts']['security'])
+                print('Total:       %5d' % host['content_facet_attributes']['errata_counts']['total'])
+            else:
+                print('Not a content host.')
+        else:
+            raise RuntimeError('Host %s not found.' % args[0])
+    elif verb == 'lookup':
+        host = sat6_session.get_host(args[0])
+        if host:
+            print(host['errata_status_label'])
+        else:
+            raise RuntimeError('Host %s not found.' % args[0])
+    elif verb == 'list':
+        print('Retrieving host list. This could take quite some time...')
+        print('%-35s: %5s %5s %5s %5s' % ('Name', 'Bug', 'Enhan', 'Sec', 'Total'))
+        print('=' * 70)
+        for host in sat6_session.get_host_list():
+            if 'content_facet_attributes' in host:
+                print('%s%-35s: %5d %5d %5d %5d%s' % (sat6_session.hl_start,
+                                         host['name'],
+                                         host['content_facet_attributes']['errata_counts']['bugfix'],
+                                         host['content_facet_attributes']['errata_counts']['enhancement'],
+                                         host['content_facet_attributes']['errata_counts']['security'],
+                                         host['content_facet_attributes']['errata_counts']['total'],
+                                         sat6_session.hl_end))
+        print('=' * 70)
+    else:
+        options.parser.error('errata does not support action: %s' % verb)
+    return True
+
+#==============================================================================
 def task_host(sat6_session, verb, *args):
     ''' Print host list '''
     logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
@@ -1799,7 +1843,7 @@ def task_host(sat6_session, verb, *args):
                                          sat6_session.hl_end))
         print('=' * 70)
     else:
-        options.parser.error('collection does not support action: %s' % verb)
+        options.parser.error('host does not support action: %s' % verb)
     return True
 
 #==============================================================================
@@ -1995,6 +2039,8 @@ def main():
 
     if task == 'collection':
         task_collection(sat6_session, verb, *options.args[2:])
+    elif task == 'errata':
+        task_errata(sat6_session, verb, *options.args[2:])
     elif task == 'host':
         task_host(sat6_session, verb, *options.args[2:])
     elif task == 'lce':
