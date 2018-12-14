@@ -43,6 +43,7 @@ import ConfigParser #: 'Easy' configuration parsing
 #--       As of 20161212 the template is coded for optparse only
 import optparse     #: pylint: disable=deprecated-module
 import logging      #: Python's standard logging facilities
+import pwd
 import os           #: Misc. OS interfaces
 import sys          #: System-specific parameters & functions
 # import traceback    #: Print/retrieve a stack traceback
@@ -87,12 +88,13 @@ if sys.version_info <= (2, 6):
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
-__version__ = '2.4.1' #: current version
-__revised__ = '20181214-131551' #: date of most recent revision
+__version__ = '2.4.2' #: current version
+__revised__ = '20181214-133953' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Tool for interacting with Satellite 6 via REST API'
 __description__ = '''Allows the user to perfrom a variety of actions on a
 Satellite 6 server from any command line without hammer.
+
 Currently available tasks and relevant actions are:
  - collection [Host Collections] (get, add, remove, lookup, list)
  - errata     [Errata Counts]    (get, lookup, list)
@@ -476,7 +478,7 @@ def RunLogger(debug=False):
                     )
     new_logger.debug('Platform:  %s', platform.platform())
     new_logger.debug('Hostname:  %s', platform.node())
-    new_logger.debug('Logname:   %s', os.getlogin())
+    new_logger.debug('Logname:   %s', pwd.getpwuid(os.geteuid())[0])
     new_logger.debug('[re]uid:  %s/%s', os.getuid(), os.geteuid())
     new_logger.debug('PID/PPID:  %s/%s', os.getpid(), os.getppid())
     if options._options is not None:             #: pylint: disable=protected-access
