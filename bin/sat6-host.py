@@ -88,8 +88,8 @@ if sys.version_info <= (2, 6):
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
-__version__ = '2.5.0' #: current version
-__revised__ = '20181214-145931' #: date of most recent revision
+__version__ = '2.6.0' #: current version
+__revised__ = '20181214-150939' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Tool for interacting with Satellite 6 via REST API'
 __description__ = '''Allows the user to perfrom a variety of actions on a
@@ -1925,6 +1925,15 @@ def task_errata(sat6_session, verb, *args):
     if verb == 'get':
         host = sat6_session.get_host(args[0])
         if host:
+            if 'errata_status_label' in host:
+                print(host['errata_status_label'])
+            else:
+                print('Not a content host.')
+        else:
+            raise RuntimeError('Host %s not found.' % args[0])
+    elif verb == 'lookup':
+        host = sat6_session.get_host(args[0])
+        if host:
             if 'content_facet_attributes' in host:
                 print('Bugfix:      %5d' % host['content_facet_attributes']['errata_counts']['bugfix'])
                 print('Enhancement: %5d' % host['content_facet_attributes']['errata_counts']['enhancement'])
@@ -1932,15 +1941,6 @@ def task_errata(sat6_session, verb, *args):
                 print('Total:       %5d' % host['content_facet_attributes']['errata_counts']['total'])
             else:
                 print('%s is not a content host.' % host['name'])
-        else:
-            raise RuntimeError('Host %s not found.' % args[0])
-    elif verb == 'lookup':
-        host = sat6_session.get_host(args[0])
-        if host:
-            if 'errata_status_label' in host:
-                print(host['errata_status_label'])
-            else:
-                print('Not a content host.')
         else:
             raise RuntimeError('Host %s not found.' % args[0])
     elif verb == 'list':
@@ -1972,6 +1972,12 @@ def task_host(sat6_session, verb, *args):
     if verb == 'get':
         host = sat6_session.get_host(args[0])
         if host:
+            print(host['subscription_status_label'])
+        else:
+            raise RuntimeError('Host %s not found.' % args[0])
+    elif verb == 'lookup':
+        host = sat6_session.get_host(args[0])
+        if host:
             print(host['name'], end ="")
             if host['name'] != host['certname']:
                 print("(%s)" % host['certname'], end ="")
@@ -1999,12 +2005,6 @@ def task_host(sat6_session, verb, *args):
                 print('Errata needed: %s' % host['content_facet_attributes']['errata_counts']['total'])
             else:
                 print('Not a content host.')
-        else:
-            raise RuntimeError('Host %s not found.' % args[0])
-    elif verb == 'lookup':
-        host = sat6_session.get_host(args[0])
-        if host:
-            print(host['subscription_status_label'])
         else:
             raise RuntimeError('Host %s not found.' % args[0])
     elif verb == 'list':
