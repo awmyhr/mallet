@@ -88,8 +88,8 @@ if sys.version_info <= (2, 6):
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
-__version__ = '2.7.0' #: current version
-__revised__ = '20190110-124632' #: date of most recent revision
+__version__ = '2.8.0' #: current version
+__revised__ = '20190110-144801' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Tool for interacting with Satellite 6 via REST API'
 __description__ = '''Allows the user to perform a variety of actions on a
@@ -873,6 +873,28 @@ class Sat6Object(object):
 
         return rjson
 
+    def _get_list(self, url):
+        ''' This returns a list of Satellite 6 Hosts.
+
+        Returns:
+            List of Hosts (dict). Of particular value will be
+
+        '''
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        item = 0
+        page_item = 0
+        page = 1
+
+        results = self._rest_call('get', url, {'page': page, 'per_page': self.per_page})
+        while item < results['subtotal']:
+            if page_item == self.per_page:
+                page += 1
+                page_item = 0
+                results = self._rest_call('get', url, {'page': page, 'per_page': self.per_page})
+            yield results['results'][page_item]
+            item += 1
+            page_item += 1
+
     def _new_connection(self, authkey=None, insecure=None, token=None, client_id=None):
         ''' Create a Request session object
 
@@ -1021,21 +1043,8 @@ class Sat6Object(object):
 
         '''
         logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
-        item = 0
-        page_item = 0
-        page = 1
 
-        results = self._rest_call('get', '%s/hosts' % (self.foreman),
-                                      {'page': page, 'per_page': self.per_page})
-        while item < results['subtotal']:
-            if page_item == self.per_page:
-                page += 1
-                page_item = 0
-                results = self._rest_call('get', '%s/hosts' % (self.foreman),
-                                              {'page': page, 'per_page': self.per_page})
-            yield results['results'][page_item]
-            item += 1
-            page_item += 1
+        return self._get_list('%s/hosts' % (self.foreman))
 
     def get_cv(self, cview=None):
         ''' Returns info about a Satellite 6 content view.
@@ -1104,25 +1113,12 @@ class Sat6Object(object):
         ''' This returns a list of Satellite 6 content views.
 
         Returns:
-            List of Orgs (dict). Of particular value will be
+            List of Content Views (dict). Of particular value will be
 
         '''
         logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
-        item = 0
-        page_item = 0
-        page = 1
 
-        results = self._rest_call('get', '%s/content_views' % (self.katello),
-                                      {'page': page, 'per_page': self.per_page})
-        while item < results['subtotal']:
-            if page_item == self.per_page:
-                page += 1
-                page_item = 0
-                results = self._rest_call('get', '%s/content_views' % (self.katello),
-                                              {'page': page, 'per_page': self.per_page})
-            yield results['results'][page_item]
-            item += 1
-            page_item += 1
+        return self._get_list('%s/content_views' % (self.katello))
 
     def get_hc(self, collection=None):
         ''' Returns info about a Satellite 6 collection.
@@ -1192,29 +1188,18 @@ class Sat6Object(object):
             return self.results['return']
         return None
 
-    def get_hc_list(self):
+    def get_hc_list(self, org_id=None):
         ''' This returns a list of Satellite 6 content views.
 
         Returns:
-            List of Orgs (dict). Of particular value will be
+            List of Host Collections (dict). Of particular value will be
 
         '''
         logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
-        item = 0
-        page_item = 0
-        page = 1
+        if org_id is None:
+            org_id = self.org_id
 
-        results = self._rest_call('get', '%s/organizations/%s/host_collections' % (self.katello, self.org_id),
-                                      {'page': page, 'per_page': self.per_page})
-        while item < results['subtotal']:
-            if page_item == self.per_page:
-                page += 1
-                page_item = 0
-                results = self._rest_call('get', '%s/organizations/%s/host_collections' % (self.katello, self.org_id),
-                                              {'page': page, 'per_page': self.per_page})
-            yield results['results'][page_item]
-            item += 1
-            page_item += 1
+        return self._get_list('%s/organizations/%s/host_collections' % (self.katello, org_id))
 
     def create_hc(self, collection):
         ''' Creates a host collection in the default organization
@@ -1323,21 +1308,8 @@ class Sat6Object(object):
 
         '''
         logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
-        item = 0
-        page_item = 0
-        page = 1
 
-        results = self._rest_call('get', '%s/organizations' % (self.katello),
-                                      {'page': page, 'per_page': self.per_page})
-        while item < results['subtotal']:
-            if page_item == self.per_page:
-                page += 1
-                page_item = 0
-                results = self._rest_call('get', '%s/organizations' % (self.katello),
-                                              {'page': page, 'per_page': self.per_page})
-            yield results['results'][page_item]
-            item += 1
-            page_item += 1
+        return self._get_list('%s/organizations' % (self.katello))
 
     def get_org_lce(self, lce_name, org_id=None):
         ''' This returns info about an Lifecycle Environments
@@ -1392,22 +1364,7 @@ class Sat6Object(object):
         if org_id is None:
             org_id = self.org_id
         logger.debug('Retriveing list of Lifecycle Environments for org_id %s.', org_id)
-        item = 0
-        page_item = 0
-        page = 1
-
-        results = self._rest_call('get', '%s/organizations/%s/environments' % (self.katello, org_id),
-                                      {'page': page, 'per_page': self.per_page})
-        while item < results['subtotal']:
-            if page_item == self.per_page:
-                page += 1
-                page_item = 0
-                results = self._rest_call('get',
-                    '%s/organizations/%s/environments' % (self.katello, org_id),
-                    {'page': page, 'per_page': self.per_page})
-            yield results['results'][page_item]
-            item += 1
-            page_item += 1
+        return self._get_list('%s/organizations/%s/environments' % (self.katello, org_id))
 
     def get_loc(self, location=None):
         ''' Returns info about a Satellite 6 location.
@@ -1479,25 +1436,12 @@ class Sat6Object(object):
         ''' This returns a list of Satellite 6 locations.
 
         Returns:
-            List of Orgs (dict). Of particular value will be
+            List of locations (dict). Of particular value will be
 
         '''
         logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
-        item = 0
-        page_item = 0
-        page = 1
 
-        results = self._rest_call('get', '%s/locations' % (self.foreman),
-                                      {'page': page, 'per_page': self.per_page})
-        while item < results['subtotal']:
-            if page_item == self.per_page:
-                page += 1
-                page_item = 0
-                results = self._rest_call('get', '%s/locations' % (self.foreman),
-                                              {'page': page, 'per_page': self.per_page})
-            yield results['results'][page_item]
-            item += 1
-            page_item += 1
+        return self._get_list('%s/locations' % (self.foreman))
 
     def set_host_cv(self, host, cview):
         ''' Set the Content View of a Sat6 host
