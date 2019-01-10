@@ -88,11 +88,11 @@ if sys.version_info <= (2, 6):
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
-__version__ = '2.6.0' #: current version
-__revised__ = '20181214-150939' #: date of most recent revision
+__version__ = '2.7.0' #: current version
+__revised__ = '20190110-124632' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Tool for interacting with Satellite 6 via REST API'
-__description__ = '''Allows the user to perfrom a variety of actions on a
+__description__ = '''Allows the user to perform a variety of actions on a
 Satellite 6 server from any command line without hammer.
 
 Currently available tasks and relevant actions are:
@@ -100,7 +100,7 @@ Currently available tasks and relevant actions are:
  - cview      [Content View]     (get, set, lookup, list)
  - errata     [Errata Counts]    (get, lookup, list)
  - host       [Host Info]        (get, lookup, list)
- - lce        [Life-Cycle Env]   (get, set, lookup, list)
+ - lifecycle  [Life-Cycle Env]   (get, set, lookup, list)
  - location   [Location]         (get, set, lookup, list)
 '''
 #------------------------------------------------------------------------------
@@ -2200,6 +2200,13 @@ def main():
     task = options.args[0]
     if len(options.args) >= 2:
         verb = options.args[1]
+        if verb == 'ls':
+            verb = 'list'
+        elif verb == 'lu':
+            verb = 'lookup'
+        elif verb == 'rm':
+            verb = 'remove'
+
         if verb not in ['get', 'add', 'remove', 'set', 'lookup', 'list']:
             options.parser.error('Unknown action: %s' % verb)
         if verb == 'get' and len(options.args) != 3:
@@ -2218,17 +2225,17 @@ def main():
     else:
         verb = None
 
-    if task == 'collection':
+    if task == 'collection' or task == 'hc':
         task_collection(sat6_session, verb, *options.args[2:])
-    elif task == 'cview':
+    elif task == 'cview' or task == 'cv':
         task_cview(sat6_session, verb, *options.args[2:])
-    elif task == 'errata':
+    elif task == 'errata' or task == 'err':
         task_errata(sat6_session, verb, *options.args[2:])
     elif task == 'host':
         task_host(sat6_session, verb, *options.args[2:])
-    elif task == 'lce':
+    elif task == 'lifecycle' or task == 'lce':
         task_lce(sat6_session, verb, *options.args[2:])
-    elif task == 'location':
+    elif task == 'location' or task == 'loc':
         task_location(sat6_session, verb, *options.args[2:])
     elif task == '_experiment':
         task__experiment(sat6_session, *options.args[1:])
