@@ -88,8 +88,8 @@ if sys.version_info <= (2, 6):
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
-__version__ = '2.9.0' #: current version
-__revised__ = '20190111-124551' #: date of most recent revision
+__version__ = '2.10.0' #: current version
+__revised__ = '20190111-132514' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Tool for interacting with Satellite 6 via REST API'
 __description__ = '''Allows the user to perform a variety of actions on a
@@ -873,7 +873,7 @@ class Sat6Object(object):
 
         return rjson
 
-    def _find_item(self, url, search):
+    def _find_item(self, url, search, field='name'):
         ''' Searches for and returns info for a Satellite 6 host.
 
         Args:
@@ -889,10 +889,10 @@ class Sat6Object(object):
             self.results['success'] = False
             self.results['msg'] = 'Error: No url passed.'
         else:
-            search_str = 'name~"%s"' % search
+            search_str = '%s~"%s"' % (field, search)
 
             results = self._rest_call('get', url,
-                                          urlencode([('search', '' + str(search_str))]))
+                                      urlencode([('search', '' + str(search_str))]))
             if results['subtotal'] == 0:
                 self.results['success'] = False
                 self.results['msg'] = 'Warning: No matches for %s.' % search
@@ -1353,50 +1353,28 @@ class Sat6Object(object):
 
         '''
         logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+
         if location is None:
-            logger.debug('Was not given location to find.')
-            return None
-        logger.debug('Looking for location: %s', location)
-        self.results = {"success": None, "msg": None, "return": None}
-
-        if isinstance(location, int):
-            results = self._rest_call('get', '%s/locations/%s' % (self.foreman, location))
-            if 'error' in results:
-                #-- This is not likely to execute, as if the host ID is not
-                #   found a 404 is thrown, which is caught by the exception
-                #   handling mechanism, and the program will bomb out.
-                #   Not sure I want to change that...
-                self.results['success'] = False
-                self.results['msg'] = 'Warning: No Location ID %s.' % location
-                self.results['return'] = results
-            else:
-                self.results['success'] = True
-                self.results['msg'] = 'Success: Location ID %s found.' % location
-                self.results['return'] = results
+            self.results['success'] = False
+            self.results['msg'] = 'Error: location passed was type None.'
+            self.results['return'] = None
         else:
-            if '/' in location:
-                search_str = 'title~"%s"' % location
-            else:
-                search_str = 'name~"%s"' % location
+            logger.debug('Looking for location: %s', location)
 
-            results = self._rest_call('get', '%s/locations/' % (self.foreman),
-                                          urlencode([('search', '' + str(search_str))]))
-            if results['subtotal'] == 0:
-                self.results['success'] = False
-                self.results['msg'] = 'Warning: No location matches for %s.' % location
-                self.results['return'] = results['results']
-            elif results['subtotal'] > 1:
-                self.results['success'] = False
-                self.results['msg'] = 'Warning: Too many location matches for %s (%s).' % (location, results['total'])
-                self.results['return'] = results['results']
-            else:
-                self.results['success'] = True
-                self.results['msg'] = 'Success: Location %s found.' % location
-                self.results['return'] = results['results'][0]
+            if not isinstance(location, int):
+                if '/' in location:
+                    field = 'title'
+                else:
+                    field = 'name'
+
+                results = self._find_item('%s/locations/' % (self.foreman), location, field)
+                if self.results['success']:
+                    location = results['id']
+            results = self._get_item('%s/locations/%s' % (self.foreman, location), 'loc_id %s' % location)
 
         logger.debug(self.results['msg'])
         if self.results['success']:
-            return self.results['return']
+            return results
         return None
 
     def get_loc_list(self):
