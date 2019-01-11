@@ -88,8 +88,8 @@ if sys.version_info <= (2, 6):
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
-__version__ = '2.8.0' #: current version
-__revised__ = '20190110-144801' #: date of most recent revision
+__version__ = '2.9.0' #: current version
+__revised__ = '20190111-124551' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Tool for interacting with Satellite 6 via REST API'
 __description__ = '''Allows the user to perform a variety of actions on a
@@ -873,6 +873,79 @@ class Sat6Object(object):
 
         return rjson
 
+    def _find_item(self, url, search):
+        ''' Searches for and returns info for a Satellite 6 host.
+
+        Args:
+            hostname (str):        Name of host to find.
+
+        Returns:
+
+        '''
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        self.results = {"success": None, "msg": None, "return": None}
+
+        if url is None:
+            self.results['success'] = False
+            self.results['msg'] = 'Error: No url passed.'
+        else:
+            search_str = 'name~"%s"' % search
+
+            results = self._rest_call('get', url,
+                                          urlencode([('search', '' + str(search_str))]))
+            if results['subtotal'] == 0:
+                self.results['success'] = False
+                self.results['msg'] = 'Warning: No matches for %s.' % search
+                self.results['return'] = results['results']
+            elif results['subtotal'] > 1:
+                self.results['success'] = False
+                self.results['msg'] = 'Warning: Too many matches for %s (%s).' % (search, results['total'])
+                self.results['return'] = results['results']
+            else:
+                self.results['success'] = True
+                self.results['msg'] = 'Success: %s found.' % search
+                self.results['return'] = results['results'][0]
+
+        logger.debug(self.results['msg'])
+        if self.results['success']:
+            return self.results['return']
+        return None
+
+    def _get_item(self, url, label):
+        ''' Searches for and returns info for a Satellite 6 host.
+
+        Args:
+            url (str):        url to hit.
+
+        Returns:
+
+        '''
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        self.results = {"success": None, "msg": None, "return": None}
+
+        if url is None:
+            self.results['success'] = False
+            self.results['msg'] = 'Error: No url passed.'
+        else:
+            results = self._rest_call('get', url)
+            if 'error' in results:
+                #-- This is not likely to execute, as if the host ID is not
+                #   found a 404 is thrown, which is caught by the exception
+                #   handling mechanism, and the program will bomb out.
+                #   Not sure I want to change that...
+                self.results['success'] = False
+                self.results['msg'] = 'Warning: %s not found.' % label
+                self.results['return'] = results
+            else:
+                self.results['success'] = True
+                self.results['msg'] = 'Success: %s found.' % label
+                self.results['return'] = results
+
+        logger.debug(self.results['msg'])
+        if self.results['success']:
+            return self.results['return']
+        return None
+
     def _get_list(self, url):
         ''' This returns a list of Satellite 6 Hosts.
 
@@ -971,7 +1044,7 @@ class Sat6Object(object):
                 logger.debug('Warning: LCE Table did not have _revision tag.')
         return self.lutables['lce'].get(lce_tag.lower(), None)
 
-    def get_host(self, hostname):
+    def get_host(self, hostname=None):
         ''' Searches for and returns info for a Satellite 6 host.
 
         Args:
@@ -992,47 +1065,25 @@ class Sat6Object(object):
 
         '''
         logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
-        logger.debug('Looking for host: %s', hostname)
-        self.results = {"success": None, "msg": None, "return": None}
+
         if hostname is None:
             self.results['success'] = False
             self.results['msg'] = 'Error: Hostname passed was type None.'
+            self.results['return'] = None
         else:
-            if isinstance(hostname, int):
-                results = self._rest_call('get', '%s/hosts/%s' % (self.foreman, hostname))
-                if 'error' in results:
-                    #-- This is not likely to execute, as if the host ID is not
-                    #   found a 404 is thrown, which is caught by the exception
-                    #   handling mechanism, and the program will bomb out.
-                    #   Not sure I want to change that...
-                    self.results['success'] = False
-                    self.results['msg'] = 'Warning: No host ID %s.' % hostname
-                    self.results['return'] = results
-                else:
-                    self.results['success'] = True
-                    self.results['msg'] = 'Success: Host ID %s found.' % hostname
-                    self.results['return'] = results
-            else:
+            logger.debug('Looking for host: %s', hostname)
+
+            if not isinstance(hostname, int):
                 if not self._is_valid_ipv4(hostname):
                     hostname = hostname.split('.')[0]
-                results = self._rest_call('get', '%s/hosts' % (self.foreman),
-                                              {'search':  'name~%s' % hostname})
-                if results['subtotal'] == 0:
-                    self.results['success'] = False
-                    self.results['msg'] = 'Warning: No host matches for %s.' % hostname
-                    self.results['return'] = results['results']
-                elif results['subtotal'] > 1:
-                    self.results['success'] = False
-                    self.results['msg'] = 'Warning: Too many host matches for %s (%s).' % (hostname, results['total'])
-                    self.results['return'] = results['results']
-                else:
-                    self.results['success'] = True
-                    self.results['msg'] = 'Success: Hostname %s found.' % hostname
-                    self.results['return'] = self._rest_call('get', '%s/hosts/%s' % (self.foreman, results['results'][0]['id']))
+                results = self._find_item('%s/hosts' % (self.foreman), hostname)
+                if self.results['success']:
+                    hostname = results['id']
+            results = self._get_item('%s/hosts/%s' % (self.foreman, hostname), 'host_id %s' % hostname)
 
         logger.debug(self.results['msg'])
         if self.results['success']:
-            return self.results['return']
+            return results
         return None
 
     def get_host_list(self):
@@ -1066,47 +1117,23 @@ class Sat6Object(object):
 
         '''
         logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+
         if cview is None:
-            logger.debug('Was not given cview to find.')
-            return None
-        logger.debug('Looking for cview: %s', cview)
-        self.results = {"success": None, "msg": None, "return": None}
-
-        if isinstance(cview, int):
-            results = self._rest_call('get', '%s/content_views/%s' % (self.katello, cview))
-            if 'error' in results:
-                #-- This is not likely to execute, as if the host ID is not
-                #   found a 404 is thrown, which is caught by the exception
-                #   handling mechanism, and the program will bomb out.
-                #   Not sure I want to change that...
-                self.results['success'] = False
-                self.results['msg'] = 'Warning: No Location ID %s.' % cview
-                self.results['return'] = results
-            else:
-                self.results['success'] = True
-                self.results['msg'] = 'Success: Location ID %s found.' % cview
-                self.results['return'] = results
+            self.results['success'] = False
+            self.results['msg'] = 'Error: cview passed was type None.'
+            self.results['return'] = None
         else:
-            search_str = 'name~"%s"' % cview
+            logger.debug('Looking for cview: %s', cview)
 
-            results = self._rest_call('get', '%s/content_views/' % (self.katello),
-                                          urlencode([('search', '' + str(search_str))]))
-            if results['subtotal'] == 0:
-                self.results['success'] = False
-                self.results['msg'] = 'Warning: No cview matches for %s.' % cview
-                self.results['return'] = results['results']
-            elif results['subtotal'] > 1:
-                self.results['success'] = False
-                self.results['msg'] = 'Warning: Too many cview matches for %s (%s).' % (cview, results['total'])
-                self.results['return'] = results['results']
-            else:
-                self.results['success'] = True
-                self.results['msg'] = 'Success: cview %s found.' % cview
-                self.results['return'] = results['results'][0]
+            if not isinstance(cview, int):
+                results = self._find_item('%s/content_views/' % (self.katello), cview)
+                if self.results['success']:
+                    cview = results['id']
+            results = self._get_item('%s/content_views/%s' % (self.katello, cview), 'cview_id %s' % cview)
 
         logger.debug(self.results['msg'])
         if self.results['success']:
-            return self.results['return']
+            return results
         return None
 
     def get_cv_list(self):
@@ -1140,52 +1167,23 @@ class Sat6Object(object):
 
         '''
         logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+
         if collection is None:
-            logger.debug('Was not given collection to find.')
-            return None
-        logger.debug('Looking for collection: %s', collection)
-        self.results = {"success": None, "msg": None, "return": None}
-
-        if isinstance(collection, int):
-            results = self._rest_call('get', '%s/host_collections/%s' % (self.katello, collection))
-            if 'error' in results:
-                #-- This is not likely to execute, as if the host ID is not
-                #   found a 404 is thrown, which is caught by the exception
-                #   handling mechanism, and the program will bomb out.
-                #   Not sure I want to change that...
-                self.results['success'] = False
-                self.results['msg'] = 'Warning: No Collection ID %s.' % collection
-                self.results['return'] = results
-            else:
-                self.results['success'] = True
-                self.results['msg'] = 'Success: Collection ID %s found.' % collection
-                self.results['return'] = results
+            self.results['success'] = False
+            self.results['msg'] = 'Error: collection passed was type None.'
+            self.results['return'] = None
         else:
-            search_str = 'name~"%s"' % collection
+            logger.debug('Looking for collection: %s', collection)
 
-            results = self._rest_call('get', '%s/organizations/%s/host_collections/' % (self.katello, self.org_id),
-                                          urlencode([('search', '' + str(search_str))]))
-            if results['subtotal'] == 0:
-                self.results['success'] = False
-                self.results['msg'] = 'Warning: No collection matches for %s.' % collection
-                self.results['return'] = results['results']
-            elif results['subtotal'] > 1:
-                self.results['success'] = False
-                self.results['msg'] = 'Warning: Too many collection matches for %s (%s).' % (collection, results['total'])
-                self.results['return'] = results['results']
-                for result in results['results']:
-                    if result['name'].lower() == collection.lower():
-                        self.results['success'] = True
-                        self.results['msg'] = 'Success: Collection %s found.' % collection
-                        self.results['return'] = result
-            else:
-                self.results['success'] = True
-                self.results['msg'] = 'Success: Collection %s found.' % collection
-                self.results['return'] = results['results'][0]
+            if not isinstance(collection, int):
+                results = self._find_item('%s/organizations/%s/host_collections/' % (self.katello, self.org_id), collection)
+                if self.results['success']:
+                    collection = results['id']
+            results = self._get_item('%s/host_collections/%s' % (self.katello, collection), 'collection_id %s' % collection)
 
         logger.debug(self.results['msg'])
         if self.results['success']:
-            return self.results['return']
+            return results
         return None
 
     def get_hc_list(self, org_id=None):
@@ -1258,46 +1256,21 @@ class Sat6Object(object):
         '''
         logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
         if organization is None:
-            if self.org_id is None:
-                organization = self.org_name
-            else:
-                organization = self.org_id
-        logger.debug('Looking for organization: %s', organization)
-        self.results = {"success": None, "msg": None, "return": None}
-
-        if isinstance(organization, int):
-            results = self._rest_call('get', '%s/organizations/%s' % (self.katello, organization))
-            if 'error' in results:
-                #-- This is not likely to execute, as if the host ID is not
-                #   found a 404 is thrown, which is caught by the exception
-                #   handling mechanism, and the program will bomb out.
-                #   Not sure I want to change that...
-                self.results['success'] = False
-                self.results['msg'] = 'Warning: No Organization ID %s.' % organization
-                self.results['return'] = results
-            else:
-                self.results['success'] = True
-                self.results['msg'] = 'Success: Organization ID %s found.' % organization
-                self.results['return'] = results
+            self.results['success'] = False
+            self.results['msg'] = 'Error: organization passed was type None.'
+            self.results['return'] = None
         else:
-            results = self._rest_call('get', '%s/organizations' % (self.katello),
-                                          {'search': organization})
-            if results['subtotal'] == 0:
-                self.results['success'] = False
-                self.results['msg'] = 'Warning: No organization matches for %s.' % organization
-                self.results['return'] = results['results']
-            elif results['subtotal'] > 1:
-                self.results['success'] = False
-                self.results['msg'] = 'Warning: Too many organization matches for %s (%s).' % (organization, results['total'])
-                self.results['return'] = results['results']
-            else:
-                self.results['success'] = True
-                self.results['msg'] = 'Success: Organization %s found.' % organization
-                self.results['return'] = results['results'][0]
+            logger.debug('Looking for organization: %s', organization)
+
+            if not isinstance(organization, int):
+                results = self._find_item('%s/organizations' % (self.katello), organization)
+                if self.results['success']:
+                    organization = results['id']
+            results = self._get_item('%s/organizations/%s' % (self.katello, organization), 'org_id %s' % organization)
 
         logger.debug(self.results['msg'])
         if self.results['success']:
-            return self.results['return']
+            return results
         return None
 
     def get_org_list(self):
@@ -1325,29 +1298,23 @@ class Sat6Object(object):
         logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
         if org_id is None:
             org_id = self.org_id
-        logger.debug('Looking for Life Cycle Environment %s in org %s.', lce_name, org_id)
-        self.results = {"success": None, "msg": None, "return": None}
 
         if lce_name is None:
             self.results['success'] = False
             self.results['msg'] = 'Error: lce_name passed was type None.'
+            self.results['return'] = None
         else:
-            results = self._rest_call('get', '%s/organizations/%s/environments' % (self.katello, org_id),
-                                          params={'search': '"%s"' % lce_name})
-            if results['subtotal'] == 0:
-                self.results['success'] = False
-                self.results['msg'] = 'Error: No LCE matches for %s in org %s.' % lce_name, org_id
-            elif results['subtotal'] > 1:
-                self.results['success'] = False
-                self.results['msg'] = 'Error: Too many LCE matches for %s in org %s.' % lce_name, org_id
-            else:
-                self.results['success'] = True
-                self.results['msg'] = 'Success: Found LCE %s.' % lce_name
-                self.results['return'] = results['results'][0]
+            logger.debug('Looking for Life Cycle Environment %s in org %s.', lce_name, org_id)
+
+            if not isinstance(lce_name, int):
+                results = self._find_item('%s/organizations/%s/environments' % (self.katello, org_id), lce_name)
+                if self.results['success']:
+                    lce_name = results['id']
+            results = self._get_item('%s/organizations/%s/environments/%s' % (self.katello, org_id, lce_name), 'lce_id %s' % lce_name)
 
         logger.debug(self.results['msg'])
         if self.results['success']:
-            return self.results['return']
+            return results
         return None
 
     def get_org_lce_list(self, org_id=None):
@@ -2083,6 +2050,8 @@ def task__experiment(sat6_session, *args):
         logger.debug('With args: %s' % args)
 
     print(options.create)
+    print(sat6_session.get_org('Metlife')['id'])
+    print(sat6_session.get_org_lce('temp'))
     # my_hc = sat6_session.get_hc('et_dse_linux')
     # print(sat6_session.results)
     # print(my_hc['id'])
