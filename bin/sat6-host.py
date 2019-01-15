@@ -88,8 +88,8 @@ if sys.version_info <= (2, 6):
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
-__version__ = '3.0.0-alpha' #: current version
-__revised__ = '20190114-164414' #: date of most recent revision
+__version__ = '3.0.0' #: current version
+__revised__ = '20190115-122122' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Tool for interacting with Satellite 6 via REST API'
 __description__ = '''Allows the user to perform a variety of actions on a
@@ -744,7 +744,7 @@ class RunOptions(object):
 #==============================================================================
 class UtilityClass(object):
     ''' Class for interacting with Satellite 6 API '''
-    __version = '1.0.0-alpha'
+    __version = '1.0.0'
 
     per_page = 100
 
@@ -908,8 +908,10 @@ class UtilityClass(object):
             results = self.rest_call('get', url,
                                       urlencode([('search', '' + str(search_str))]))
             if results['return']['subtotal'] == 0:
+                results['success'] = False
                 results['msg'] = 'Warning: No matches for %s.' % search
             elif results['return']['subtotal'] > 1:
+                results['success'] = False
                 results['msg'] = 'Warning: Too many matches for %s (%s).' % (search, results['total'])
             else:
                 results['success'] = True
@@ -940,6 +942,7 @@ class UtilityClass(object):
                 #   found a 404 is thrown, which is caught by the exception
                 #   handling mechanism, and the program will bomb out.
                 #   Not sure I want to change that...
+                results['success'] = False
                 results['msg'] = 'Warning: %s not found.' % label
             else:
                 results['success'] = True
@@ -976,7 +979,7 @@ class UtilityClass(object):
 #==============================================================================
 class Sat6Object(object):
     ''' Class for interacting with Satellite 6 API '''
-    __version = '2.0.0-alpha'
+    __version = '2.0.0'
     #-- Max number of items returned per page.
     #   Though we allow this to be configured, KB articles say 100 is the
     #   optimal value to avoid timeouts.
@@ -1077,7 +1080,11 @@ class Sat6Object(object):
                 self.results = self.util.find_item('%s/hosts' % (self.foreman), hostname)
                 if self.results['success']:
                     hostname = self.results['return']['id']
-            self.results = self.util.get_item('%s/hosts/%s' % (self.foreman, hostname), 'host_id %s' % hostname)
+                else:
+                    logger.debug('find unsuccessful: %s' % self.results)
+                    hostname = None
+            if hostname is not None:
+                self.results = self.util.get_item('%s/hosts/%s' % (self.foreman, hostname), 'host_id %s' % hostname)
 
         logger.debug('get_host: %s', self.results['msg'])
         if self.results['success']:
@@ -1126,7 +1133,11 @@ class Sat6Object(object):
                 self.results = self.util.find_item('%s/content_views/' % (self.katello), cview)
                 if self.results['success']:
                     cview = self.results['return']['id']
-            self.results = self.util.get_item('%s/content_views/%s' % (self.katello, cview), 'cview_id %s' % cview)
+                else:
+                    logger.debug('find unsuccessful: %s' % self.results)
+                    cview = None
+            if cview is not None:
+                self.results = self.util.get_item('%s/content_views/%s' % (self.katello, cview), 'cview_id %s' % cview)
 
         logger.debug('get_cv: %s', self.results['msg'])
         if self.results['success']:
@@ -1175,7 +1186,11 @@ class Sat6Object(object):
                 self.results = self.util.find_item('%s/organizations/%s/host_collections/' % (self.katello, self.org_id), collection)
                 if self.results['success']:
                     collection = self.results['return']['id']
-            self.results = self.util.get_item('%s/host_collections/%s' % (self.katello, collection), 'collection_id %s' % collection)
+                else:
+                    logger.debug('find unsuccessful: %s' % self.results)
+                    collection = None
+            if collection is not None:
+                self.results = self.util.get_item('%s/host_collections/%s' % (self.katello, collection), 'collection_id %s' % collection)
 
         logger.debug('get_hc: %s', self.results['msg'])
         if self.results['success']:
@@ -1222,7 +1237,7 @@ class Sat6Object(object):
         self.results = self.util.rest_call('post', '%s/organizations/%s/host_collections' % (self.katello, self.org_id),
                                   data={'organization_id': self.org_id, 'name': collection}
                                  )
-        if results['return']['id']:
+        if self.results['return']['id']:
             self.results['success'] = True
             self.results['msg'] = 'Collection %s created.' % (collection)
             return True
@@ -1261,7 +1276,11 @@ class Sat6Object(object):
                 self.results = self.util.find_item('%s/organizations' % (self.katello), organization)
                 if self.results['success']:
                     organization = self.results['return']['id']
-            self.results = self.util.get_item('%s/organizations/%s' % (self.katello, organization), 'org_id %s' % organization)
+                else:
+                    logger.debug('find unsuccessful: %s' % self.results)
+                    organization = None
+            if organization is not None:
+                self.results = self.util.get_item('%s/organizations/%s' % (self.katello, organization), 'org_id %s' % organization)
 
         logger.debug('get_org: ', self.results['msg'])
         if self.results['success']:
@@ -1304,7 +1323,11 @@ class Sat6Object(object):
                 self.results = self.util.find_item('%s/organizations/%s/environments' % (self.katello, org_id), lce_name)
                 if self.results['success']:
                     lce_name = self.results['return']['id']
-            self.results = self.util.get_item('%s/organizations/%s/environments/%s' % (self.katello, org_id, lce_name), 'lce_id %s' % lce_name)
+                else:
+                    logger.debug('find unsuccessful: %s' % self.results)
+                    lce_name = None
+            if lce_name is not None:
+                self.results = self.util.get_item('%s/organizations/%s/environments/%s' % (self.katello, org_id, lce_name), 'lce_id %s' % lce_name)
 
         logger.debug(self.results['msg'])
         if self.results['success']:
@@ -1363,7 +1386,11 @@ class Sat6Object(object):
                 self.results = self.util.find_item('%s/locations/' % (self.foreman), location, field)
                 if self.results['success']:
                     location = self.results['return']['id']
-            self.results = self.util.get_item('%s/locations/%s' % (self.foreman, location), 'loc_id %s' % location)
+                else:
+                    logger.debug('find unsuccessful: %s' % self.results)
+                    location = None
+            if location is not None:
+                self.results = self.util.get_item('%s/locations/%s' % (self.foreman, location), 'loc_id %s' % location)
 
         logger.debug(self.results['msg'])
         if self.results['success']:
