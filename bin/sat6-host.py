@@ -88,18 +88,18 @@ if sys.version_info <= (2, 6):
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
-__version__ = '3.1.0' #: current version
-__revised__ = '20190117-125414' #: date of most recent revision
+__version__ = '3.2.0' #: current version
+__revised__ = '20190117-131737' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Tool for interacting with Satellite 6 via REST API'
 __description__ = '''Allows the user to perform a variety of actions on a
 Satellite 6 server from any command line without hammer.
 
 Currently available tasks, [aliases] and (relevant actions) are:
- - host-collection       [hc]  (get, add, remove, info, list)
- - content-view          [cv]  (get, set, info, list)
- - erratum               [err] (get, info, list)
- - host                  [h]   (get, info, list)
+ - host-collection       [hc]  (get, add, remove, info, list, search)
+ - content-view          [cv]  (get, set, info, list, search)
+ - erratum               [err] (get, info, list, search)
+ - host                  [h]   (get, info, list, search)
  - lifecycle-environment [lce] (get, set, info, list)
  - location              [loc] (get, set, info, list)
 '''
@@ -1787,10 +1787,15 @@ def task_collection(sat6_session, verb, *args):
             print(hcollec['name'])
         else:
             raise RuntimeError('"%s" not found.' % args[0])
-    elif verb == 'list':
+    elif verb == 'list' or verb == 'search':
+        if len(args) == 1:
+            search = args[0]
+            print('Search for: %s' % search)
+        else:
+            search = None
         print('%-35s: %s' % ('Name', 'Host count'))
         print('=' * 70)
-        for hcollec in sat6_session.get_hc_list():
+        for hcollec in sat6_session.get_hc_list(search):
             print('%s%-35s: %s%s' % (sat6_session.hl_start,
                                      hcollec['name'],
                                      hcollec['total_hosts'],
@@ -1836,10 +1841,15 @@ def task_cview(sat6_session, verb, *args):
             print(cview['name'])
         else:
             raise RuntimeError('"%s" not found.' % args[0])
-    elif verb == 'list':
+    elif verb == 'list' or verb == 'search':
+        if len(args) == 1:
+            search = args[0]
+            print('Search for: %s' % search)
+        else:
+            search = None
         print('%-20s: %s' % ('Title', 'Description'))
         print('=' * 70)
-        for cview in sat6_session.get_cv_list():
+        for cview in sat6_session.get_cv_list(search):
             print('%s%-20s: %s%s' % (sat6_session.hl_start,
                                      cview['name'], cview['description'],
                                      sat6_session.hl_end))
@@ -1877,11 +1887,16 @@ def task_errata(sat6_session, verb, *args):
                 print('%s is not a content host.' % host['name'])
         else:
             raise RuntimeError('Host %s not found.' % args[0])
-    elif verb == 'list':
+    elif verb == 'list' or verb == 'search':
         print('Retrieving host list. This could take quite some time...')
+        if len(args) == 1:
+            search = args[0]
+            print('Search for: %s' % search)
+        else:
+            search = None
         print('%-35s: %5s %5s %5s %5s' % ('Name', 'Bug', 'Enhan', 'Sec', 'Total'))
         print('=' * 70)
-        for host in sat6_session.get_host_list():
+        for host in sat6_session.get_host_list(search):
             if 'content_facet_attributes' in host:
                 print('%s%-35s: %5d %5d %5d %5d%s' % (sat6_session.hl_start,
                                          host['name'],
@@ -1941,11 +1956,16 @@ def task_host(sat6_session, verb, *args):
                 print('Not a content host.')
         else:
             raise RuntimeError('Host %s not found.' % args[0])
-    elif verb == 'list':
+    elif verb == 'list' or verb == 'search':
         print('Retrieving host list. This could take quite some time...')
+        if len(args) == 1:
+            search = args[0]
+            print('Search for: %s' % search)
+        else:
+            search = None
         print('%-35s: %s' % ('Name', 'Life-Cycle Environment'))
         print('=' * 70)
-        for host in sat6_session.get_host_list():
+        for host in sat6_session.get_host_list(search):
             if 'content_facet_attributes' in host:
                 print('%s%-35s: %s%s' % (sat6_session.hl_start,
                                          host['name'],
@@ -2048,10 +2068,16 @@ def task_location(sat6_session, verb, *args):
             print(loc['title'])
         else:
             raise RuntimeError('"%s" not found.' % args[0])
+    # elif verb == 'list' or verb == 'search':
     elif verb == 'list':
+        if len(args) == 1:
+            search = args[0]
+            print('Search for: %s' % search)
+        else:
+            search = None
         print('%-35s: %s' % ('Title', 'Parent'))
         print('=' * 70)
-        for loc in sat6_session.get_loc_list():
+        for loc in sat6_session.get_loc_list(search):
             if loc['parent_id'] is not None:
                 parent = sat6_session.get_loc(loc['parent_id'])['title']
             else:
@@ -2151,7 +2177,7 @@ def main():
         elif verb == 'rm':
             verb = 'remove'
 
-        if verb not in ['get', 'add', 'remove', 'set', 'info', 'list']:
+        if verb not in ['get', 'add', 'remove', 'set', 'info', 'list', 'search']:
             options.parser.error('Unknown action: %s' % verb)
         if verb == 'get' and len(options.args) != 3:
             options.parser.error('Action get requires only a hostname.')
@@ -2163,6 +2189,8 @@ def main():
             options.parser.error('Action set requires a hostname and target.')
         elif verb == 'info' and len(options.args) != 3:
             options.parser.error('Action info requires only a target.')
+        elif verb == 'search' and len(options.args) != 3:
+            options.parser.error('Action search requires only a string.')
         elif verb == 'list' and len(options.args) != 2:
             options.parser.error('Action list accepts no arguments.')
         logger.debug('Was asked to %s' % verb)
