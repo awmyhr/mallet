@@ -4,7 +4,7 @@
 #------------------------------------------------------------------------------
 # name:    Satellite 6 Notes (satellite6Notes)
 # author:  awmyhr@gmail.com
-# revised: 20181214-102205
+# revised: 20190117-131737
 # created: 2016-12-07
 #------------------------------------------------------------------------------
 #-- NOTE: This document was compiled running Satellite 6.2.4 on RHEL 7.3
@@ -176,6 +176,17 @@ ENTRY=0 ; while [[ "${PRODUCT_REPOS[ENTRY]}z" != 'z' ]] ; do
     fi
     ENTRY=$(( ENTRY + 1 ))
 done
+#------------------------------------------------------------------------------
+#-- ports needed from client to Sat6
+#------------------------------------------------------------------------------
+# 80 / TCP
+# 443 / TCP
+# 5647 / TCP
+# 8000 / TCP
+# 8140 / TCP
+# 8443 / TCP
+# 9090 / TCP
+# 5000 / TCP
 #------------------------------------------------------------------------------
 #-- Migrating a client from Sat5 to Sat6
 #-- REF: https://access.redhat.com/solutions/1233443
