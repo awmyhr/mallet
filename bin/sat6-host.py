@@ -89,7 +89,7 @@ if sys.version_info <= (2, 6):
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
 __version__ = '3.1.0' #: current version
-__revised__ = '20190117-123000' #: date of most recent revision
+__revised__ = '20190117-125414' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Tool for interacting with Satellite 6 via REST API'
 __description__ = '''Allows the user to perform a variety of actions on a
@@ -744,7 +744,7 @@ class RunOptions(object):
 #==============================================================================
 class UtilityClass(object):
     ''' Class for interacting with Satellite 6 API '''
-    __version = '1.0.0'
+    __version = '1.1.0'
 
     per_page = 100
 
@@ -964,6 +964,8 @@ class UtilityClass(object):
         if search is None:
             params = {'page': 1, 'per_page': per_page}
         else:
+            if '=' in search:
+                field, search = search.split('=')
             params = {'page': 1, 'per_page': per_page,
                       'search': '%s~"%s"' % (field, search)}
         item = 0
@@ -983,7 +985,7 @@ class UtilityClass(object):
 #==============================================================================
 class Sat6Object(object):
     ''' Class for interacting with Satellite 6 API '''
-    __version = '2.0.0'
+    __version = '2.1.0'
     #-- Max number of items returned per page.
     #   Though we allow this to be configured, KB articles say 100 is the
     #   optimal value to avoid timeouts.
@@ -1095,7 +1097,7 @@ class Sat6Object(object):
             return self.results['return']
         return None
 
-    def get_host_list(self):
+    def get_host_list(self, search=None, field='name'):
         ''' This returns a list of Satellite 6 Hosts.
 
         Returns:
@@ -1104,7 +1106,7 @@ class Sat6Object(object):
         '''
         logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
 
-        return self.util.get_list('%s/hosts' % (self.foreman))
+        return self.util.get_list('%s/hosts' % (self.foreman), search=search, field=field)
 
     def get_cv(self, cview=None):
         ''' Returns info about a Satellite 6 content view.
@@ -1148,7 +1150,7 @@ class Sat6Object(object):
             return self.results['return']
         return None
 
-    def get_cv_list(self):
+    def get_cv_list(self, search=None, field='name'):
         ''' This returns a list of Satellite 6 content views.
 
         Returns:
@@ -1157,7 +1159,7 @@ class Sat6Object(object):
         '''
         logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
 
-        return self.util.get_list('%s/content_views' % (self.katello))
+        return self.util.get_list('%s/content_views' % (self.katello), search=search, field=field)
 
     def get_hc(self, collection=None):
         ''' Returns info about a Satellite 6 collection.
@@ -1201,7 +1203,7 @@ class Sat6Object(object):
             return self.results['return']
         return None
 
-    def get_hc_list(self, org_id=None):
+    def get_hc_list(self, search=None, field='name', org_id=None):
         ''' This returns a list of Satellite 6 content views.
 
         Returns:
@@ -1212,7 +1214,7 @@ class Sat6Object(object):
         if org_id is None:
             org_id = self.org_id
 
-        return self.util.get_list('%s/organizations/%s/host_collections' % (self.katello, org_id))
+        return self.util.get_list('%s/organizations/%s/host_collections' % (self.katello, org_id), search=search, field=field)
 
     def create_hc(self, collection):
         ''' Creates a host collection in the default organization
@@ -1291,7 +1293,7 @@ class Sat6Object(object):
             return self.results['return']
         return None
 
-    def get_org_list(self):
+    def get_org_list(self, search=None, field='name'):
         ''' This returns a list of Satellite 6 organizations.
 
         Returns:
@@ -1300,7 +1302,7 @@ class Sat6Object(object):
         '''
         logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
 
-        return self.util.get_list('%s/organizations' % (self.katello))
+        return self.util.get_list('%s/organizations' % (self.katello), search=search, field=field)
 
     def get_org_lce(self, lce_name, org_id=None):
         ''' This returns info about an Lifecycle Environments
@@ -1338,7 +1340,7 @@ class Sat6Object(object):
             return self.results['return']
         return None
 
-    def get_org_lce_list(self, org_id=None):
+    def get_org_lce_list(self, search=None, field='name', org_id=None):
         ''' This returns a list of an Orgs Lifecycel Environments
 
         Args:
@@ -1352,7 +1354,7 @@ class Sat6Object(object):
         if org_id is None:
             org_id = self.org_id
         logger.debug('Retriveing list of Lifecycle Environments for org_id %s.', org_id)
-        return self.util.get_list('%s/organizations/%s/environments' % (self.katello, org_id))
+        return self.util.get_list('%s/organizations/%s/environments' % (self.katello, org_id), search=search, field=field)
 
     def get_loc(self, location=None):
         ''' Returns info about a Satellite 6 location.
@@ -1401,7 +1403,7 @@ class Sat6Object(object):
             return self.results['return']
         return None
 
-    def get_loc_list(self):
+    def get_loc_list(self, search=None, field='name'):
         ''' This returns a list of Satellite 6 locations.
 
         Returns:
@@ -1410,7 +1412,7 @@ class Sat6Object(object):
         '''
         logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
 
-        return self.util.get_list('%s/locations' % (self.foreman))
+        return self.util.get_list('%s/locations' % (self.foreman), search=search, field=field)
 
     def set_host_cv(self, host=None, cview=None):
         ''' Set the Content View of a Sat6 host
@@ -2072,7 +2074,7 @@ def task__experiment(sat6_session, *args):
 
     print('%-35s: %s' % ('Name', 'Life-Cycle Environment'))
     print('=' * 70)
-    for host in sat6_session.get_host_list():
+    for host in sat6_session.get_host_list(search='os_major=6'):
         if 'content_facet_attributes' in host:
             print('%s%-35s: %s%s' % (sat6_session.hl_start,
                                      host['name'],
