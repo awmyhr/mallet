@@ -88,20 +88,20 @@ if sys.version_info <= (2, 6):
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 #-- TODO: Update meta vars
-__version__ = '3.0.0' #: current version
-__revised__ = '20190115-122122' #: date of most recent revision
+__version__ = '3.1.0' #: current version
+__revised__ = '20190117-123000' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Tool for interacting with Satellite 6 via REST API'
 __description__ = '''Allows the user to perform a variety of actions on a
 Satellite 6 server from any command line without hammer.
 
-Currently available tasks and relevant actions are:
- - collection [Host Collections] (get, add, remove, lookup, list)
- - cview      [Content View]     (get, set, lookup, list)
- - errata     [Errata Counts]    (get, lookup, list)
- - host       [Host Info]        (get, lookup, list)
- - lifecycle  [Life-Cycle Env]   (get, set, lookup, list)
- - location   [Location]         (get, set, lookup, list)
+Currently available tasks, [aliases] and (relevant actions) are:
+ - host-collection       [hc]  (get, add, remove, info, list)
+ - content-view          [cv]  (get, set, info, list)
+ - erratum               [err] (get, info, list)
+ - host                  [h]   (get, info, list)
+ - lifecycle-environment [lce] (get, set, info, list)
+ - location              [loc] (get, set, info, list)
 '''
 #------------------------------------------------------------------------------
 #-- The following few variables should be relatively static over life of script
@@ -658,7 +658,7 @@ class RunOptions(object):
                             )
         usage_string = ('%s [options] <task> get <hostname>\n'
                         '  or:  %s [options] <task> <add|remove|set> <hostname> <target>\n'
-                        '  or:  %s [options] <task> lookup <target>\n'
+                        '  or:  %s [options] <task> info <target>\n'
                         '  or:  %s [options] <task> list') % (
                             __basename__, __basename__, __basename__, __basename__)
         version_string = '%s (%s) %s' % (__cononical_name__, __project_name__, __version__)
@@ -888,7 +888,7 @@ class UtilityClass(object):
         logger.debug('rest_call: %s', results['msg'])
         return results
 
-    def find_item(self, url, search, field='name'):
+    def find_item(self, url, search=None, field='name'):
         ''' Searches for and returns info for a Satellite 6 host.
 
         Args:
@@ -951,7 +951,7 @@ class UtilityClass(object):
         logger.debug('get_item: %s', results['msg'])
         return results
 
-    def get_list(self, url, per_page=None):
+    def get_list(self, url, search=None, field='name', per_page=None):
         ''' This returns a list of Satellite 6 Hosts.
 
         Returns:
@@ -961,16 +961,20 @@ class UtilityClass(object):
         logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
         if per_page is None:
             per_page = self.per_page
+        if search is None:
+            params = {'page': 1, 'per_page': per_page}
+        else:
+            params = {'page': 1, 'per_page': per_page,
+                      'search': '%s~"%s"' % (field, search)}
         item = 0
         page_item = 0
-        page = 1
 
-        results = self.rest_call('get', url, {'page': page, 'per_page': per_page})
+        results = self.rest_call('get', url, params)
         while item < results['return']['subtotal']:
-            if page_item == self.per_page:
-                page += 1
+            if page_item == per_page:
+                params['page'] += 1
                 page_item = 0
-                results = self.rest_call('get', url, {'page': page, 'per_page': per_page})
+                results = self.rest_call('get', url, params)
             yield results['return']['results'][page_item]
             item += 1
             page_item += 1
@@ -1775,7 +1779,7 @@ def task_collection(sat6_session, verb, *args):
                 raise RuntimeError('%s: %s', host['name'], sat6_session.results['msg'])
         else:
             raise RuntimeError('Host %s not found.' % args[0])
-    elif verb == 'lookup':
+    elif verb == 'info':
         hcollec = sat6_session.get_hc(args[0])
         if hcollec:
             print(hcollec['name'])
@@ -1791,7 +1795,7 @@ def task_collection(sat6_session, verb, *args):
                                      sat6_session.hl_end))
         print('=' * 70)
     else:
-        options.parser.error('collection does not support action: %s' % verb)
+        options.parser.error('host-collection does not support action: %s' % verb)
     return True
 
 
@@ -1824,7 +1828,7 @@ def task_cview(sat6_session, verb, *args):
                 raise RuntimeError('%s: %s' % (host['name'], sat6_session.results['msg']))
         else:
             raise RuntimeError('Host %s not found.' % args[0])
-    elif verb == 'lookup':
+    elif verb == 'info':
         cview = sat6_session.get_cv(args[0])
         if cview:
             print(cview['name'])
@@ -1839,7 +1843,7 @@ def task_cview(sat6_session, verb, *args):
                                      sat6_session.hl_end))
         print('=' * 70)
     else:
-        options.parser.error('cview does not support action: %s' % verb)
+        options.parser.error('content-view does not support action: %s' % verb)
     return True
 
 
@@ -1859,7 +1863,7 @@ def task_errata(sat6_session, verb, *args):
                 print('Not a content host.')
         else:
             raise RuntimeError('Host %s not found.' % args[0])
-    elif verb == 'lookup':
+    elif verb == 'info':
         host = sat6_session.get_host(args[0])
         if host:
             if 'content_facet_attributes' in host:
@@ -1886,7 +1890,7 @@ def task_errata(sat6_session, verb, *args):
                                          sat6_session.hl_end))
         print('=' * 70)
     else:
-        options.parser.error('errata does not support action: %s' % verb)
+        options.parser.error('erratum does not support action: %s' % verb)
     return True
 
 
@@ -1903,7 +1907,7 @@ def task_host(sat6_session, verb, *args):
             print(host['subscription_status_label'])
         else:
             raise RuntimeError('Host %s not found.' % args[0])
-    elif verb == 'lookup':
+    elif verb == 'info':
         host = sat6_session.get_host(args[0])
         if host:
             print(host['name'], end ="")
@@ -1984,7 +1988,7 @@ def task_lce(sat6_session, verb, *args):
                 raise RuntimeError('%s: %s', host['name'], sat6_session.results['msg'])
         else:
             raise RuntimeError('Host %s not found.' % args[0])
-    elif verb == 'lookup':
+    elif verb == 'info':
         lce = sat6_session.lookup_lce_name(args[0])
         if lce:
             print(lce)
@@ -2003,7 +2007,7 @@ def task_lce(sat6_session, verb, *args):
         print('=' * 70)
         print('Note: The values are case insensitive.')
     else:
-        options.parser.error('lce does not support action: %s' % verb)
+        options.parser.error('lifecycle-environment does not support action: %s' % verb)
     return True
 
 
@@ -2036,7 +2040,7 @@ def task_location(sat6_session, verb, *args):
                 raise RuntimeError('%s: %s' % (host['name'], sat6_session.results['msg']))
         else:
             raise RuntimeError('Host %s not found.' % args[0])
-    elif verb == 'lookup':
+    elif verb == 'info':
         loc = sat6_session.get_loc(args[0])
         if loc:
             print(loc['title'])
@@ -2066,9 +2070,19 @@ def task__experiment(sat6_session, *args):
     if args:
         logger.debug('With args: %s' % args)
 
-    print(options.create)
-    print(sat6_session.get_org('Metlife')['id'])
-    print(sat6_session.get_org_lce('temp'))
+    print('%-35s: %s' % ('Name', 'Life-Cycle Environment'))
+    print('=' * 70)
+    for host in sat6_session.get_host_list():
+        if 'content_facet_attributes' in host:
+            print('%s%-35s: %s%s' % (sat6_session.hl_start,
+                                     host['name'],
+                                     host['content_facet_attributes']['lifecycle_environment']['name'],
+                                     sat6_session.hl_end))
+        else:
+            print('%s%-35s: %s' %   (sat6_session.hl_start,
+                                     host['name'],
+                                     sat6_session.hl_end))
+    print('=' * 70)
     # my_hc = sat6_session.get_hc('et_dse_linux')
     # print(sat6_session.results)
     # print(my_hc['id'])
@@ -2132,12 +2146,10 @@ def main():
         verb = options.args[1]
         if verb == 'ls':
             verb = 'list'
-        elif verb == 'lu':
-            verb = 'lookup'
         elif verb == 'rm':
             verb = 'remove'
 
-        if verb not in ['get', 'add', 'remove', 'set', 'lookup', 'list']:
+        if verb not in ['get', 'add', 'remove', 'set', 'info', 'list']:
             options.parser.error('Unknown action: %s' % verb)
         if verb == 'get' and len(options.args) != 3:
             options.parser.error('Action get requires only a hostname.')
@@ -2147,23 +2159,23 @@ def main():
             options.parser.error('Action remove requires a hostname and target.')
         elif verb == 'set' and len(options.args) != 4:
             options.parser.error('Action set requires a hostname and target.')
-        elif verb == 'lookup' and len(options.args) != 3:
-            options.parser.error('Action lookup requires only a target.')
+        elif verb == 'info' and len(options.args) != 3:
+            options.parser.error('Action info requires only a target.')
         elif verb == 'list' and len(options.args) != 2:
             options.parser.error('Action list accepts no arguments.')
         logger.debug('Was asked to %s' % verb)
     else:
         verb = None
 
-    if task == 'collection' or task == 'hc':
+    if task == 'collection' or task == 'host-collection' or task == 'hc':
         task_collection(sat6_session, verb, *options.args[2:])
-    elif task == 'cview' or task == 'cv':
+    elif task == 'cview' or task == 'content-view' or task == 'cv':
         task_cview(sat6_session, verb, *options.args[2:])
-    elif task == 'errata' or task == 'err':
+    elif task == 'errata' or task == 'erratum' or task == 'err':
         task_errata(sat6_session, verb, *options.args[2:])
-    elif task == 'host':
+    elif task == 'host' or task == 'h':
         task_host(sat6_session, verb, *options.args[2:])
-    elif task == 'lifecycle' or task == 'lce':
+    elif task == 'lifecycle' or task == 'lifecycle-environment' or task == 'lce':
         task_lce(sat6_session, verb, *options.args[2:])
     elif task == 'location' or task == 'loc':
         task_location(sat6_session, verb, *options.args[2:])
