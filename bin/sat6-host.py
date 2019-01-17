@@ -75,24 +75,13 @@ except ImportError:
 #-- Require a minimum Python version
 if sys.version_info <= (2, 6):
     sys.exit("Minimum Python version: 2.6")
-#-- NOTE: default Python versions:
-#--       RHEL4    2.3.4
-#--       RHEL5    2.4.3
-#--       RHEL6.0  2.6.5
-#--       RHEL6.1+ 2.6.6
-#--       REHL7    2.7.5
-#-- Recent Fedora versions (24/25) stay current on 2.7 (2.7.12 as of 20161212)
-#==============================================================================
-#==============================================================================
-#-- Application Library Imports
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
-#-- TODO: Update meta vars
-__version__ = '3.2.0' #: current version
-__revised__ = '20190117-131737' #: date of most recent revision
+__version__ = '3.2.1' #: current version
+__revised__ = '20190117-134926' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
-__synopsis__ = 'Tool for interacting with Satellite 6 via REST API'
-__description__ = '''Allows the user to perform a variety of actions on a
+__synopsis__ = 'Light-weight, host-centric alternative to hammer'
+__description__ = '''Allows the user to perform a variety of tasks on a
 Satellite 6 server from any command line without hammer.
 
 Currently available tasks, [aliases] and (relevant actions) are:
@@ -659,8 +648,9 @@ class RunOptions(object):
         usage_string = ('%s [options] <task> get <hostname>\n'
                         '  or:  %s [options] <task> <add|remove|set> <hostname> <target>\n'
                         '  or:  %s [options] <task> info <target>\n'
+                        '  or:  %s [options] <task> search <string>\n'
                         '  or:  %s [options] <task> list') % (
-                            __basename__, __basename__, __basename__, __basename__)
+                            __basename__, __basename__, __basename__, __basename__, __basename__)
         version_string = '%s (%s) %s' % (__cononical_name__, __project_name__, __version__)
         if __gnu_version__:
             version_string += '\nCopyright %s\nLicense %s\n' % (__copyright__, __license__)
