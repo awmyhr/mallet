@@ -77,8 +77,8 @@ if sys.version_info <= (2, 6):
     sys.exit("Minimum Python version: 2.6")
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
-__version__ = '3.2.1' #: current version
-__revised__ = '20190117-134926' #: date of most recent revision
+__version__ = '3.2.2' #: current version
+__revised__ = '20190123-110620' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Light-weight, host-centric alternative to hammer'
 __description__ = '''Allows the user to perform a variety of tasks on a
@@ -2187,17 +2187,17 @@ def main():
     else:
         verb = None
 
-    if task == 'collection' or task == 'host-collection' or task == 'hc':
+    if task in ['collection', 'host-collection', 'hc']:
         task_collection(sat6_session, verb, *options.args[2:])
-    elif task == 'cview' or task == 'content-view' or task == 'cv':
+    elif task in ['cview', 'content-view', 'cv']:
         task_cview(sat6_session, verb, *options.args[2:])
-    elif task == 'errata' or task == 'erratum' or task == 'err':
+    elif task in ['errata', 'erratum', 'err']:
         task_errata(sat6_session, verb, *options.args[2:])
-    elif task == 'host' or task == 'h':
+    elif task in ['host', 'h']:
         task_host(sat6_session, verb, *options.args[2:])
-    elif task == 'lifecycle' or task == 'lifecycle-environment' or task == 'lce':
+    elif task in ['lifecycle', 'lifecycle-environment', 'lce']:
         task_lce(sat6_session, verb, *options.args[2:])
-    elif task == 'location' or task == 'loc':
+    elif task in ['location', 'loc']:
         task_location(sat6_session, verb, *options.args[2:])
     elif task == '_experiment':
         task__experiment(sat6_session, *options.args[1:])
