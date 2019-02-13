@@ -77,20 +77,20 @@ if sys.version_info <= (2, 6):
     sys.exit("Minimum Python version: 2.6")
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
-__version__ = '3.2.2' #: current version
-__revised__ = '20190123-110620' #: date of most recent revision
+__version__ = '3.3.0' #: current version
+__revised__ = '20190213-142804' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Light-weight, host-centric alternative to hammer'
 __description__ = '''Allows the user to perform a variety of tasks on a
 Satellite 6 server from any command line without hammer.
 
 Currently available tasks, [aliases] and (relevant actions) are:
- - host-collection       [hc]  (get, add, remove, info, list, search)
- - content-view          [cv]  (get, set, info, list, search)
- - erratum               [err] (get, info, list, search)
- - host                  [h]   (get, info, list, search)
- - lifecycle-environment [lce] (get, set, info, list)
- - location              [loc] (get, set, info, list)
+ - host-collection       [hc]  (add, get, help, info, list, remove, search)
+ - content-view          [cv]  (get, help, info, list, search, set)
+ - erratum               [err] (get, help, info, list, search)
+ - host                  [h]   (get, help, info, list, search)
+ - lifecycle-environment [lce] (get, help, info, list, set)
+ - location              [loc] (get, help, info, list, set)
 '''
 #------------------------------------------------------------------------------
 #-- The following few variables should be relatively static over life of script
@@ -1728,7 +1728,10 @@ def task_collection(sat6_session, verb, *args):
     if args:
         logger.debug('With verb: %s; and args: %s' % (verb, args))
 
-    if verb == 'get':
+    if verb == 'help':
+        print('Task: host-collection [alias: hc]')
+        print('Actions: add, get, help, info, list, remove, search')
+    elif verb == 'get':
         host = sat6_session.get_host(args[0])
         if host:
             if 'host_collections' in host:
@@ -1803,7 +1806,10 @@ def task_cview(sat6_session, verb, *args):
     if args:
         logger.debug('With verb: %s; and args: %s' % (verb, args))
 
-    if verb == 'get':
+    if verb == 'help':
+        print('Task: content-view [alias: cv]')
+        print('Actions: get, help, info, list, search, set')
+    elif verb == 'get':
         host = sat6_session.get_host(args[0])
         if host:
             if 'content_facet_attributes' in host:
@@ -1856,7 +1862,10 @@ def task_errata(sat6_session, verb, *args):
     if args:
         logger.debug('With verb: %s; and args: %s' % (verb, args))
 
-    if verb == 'get':
+    if verb == 'help':
+        print('Task: erratum [alias: err]')
+        print('Actions: get, help, info, list, search')
+    elif verb == 'get':
         host = sat6_session.get_host(args[0])
         if host:
             if 'errata_status_label' in host:
@@ -1908,7 +1917,10 @@ def task_host(sat6_session, verb, *args):
     if args:
         logger.debug('With verb: %s; and args: %s' % (verb, args))
 
-    if verb == 'get':
+    if verb == 'help':
+        print('Task: host [alias: h]')
+        print('Actions: get, help, info, list, search')
+    elif verb == 'get':
         host = sat6_session.get_host(args[0])
         if host:
             print(host['subscription_status_label'])
@@ -1978,7 +1990,10 @@ def task_lce(sat6_session, verb, *args):
     if args:
         logger.debug('With verb: %s; and args: %s' % (verb, args))
 
-    if verb == 'get':
+    if verb == 'help':
+        print('Task: lifecycle-environment [alias: lce]')
+        print('Actions: get, help, info, list, set')
+    elif verb == 'get':
         host = sat6_session.get_host(args[0])
         if host:
             if 'content_facet_attributes' in host:
@@ -2030,7 +2045,10 @@ def task_location(sat6_session, verb, *args):
     if args:
         logger.debug('With verb: %s; and args: %s' % (verb, args))
 
-    if verb == 'get':
+    if verb == 'help':
+        print('Task: location [alias: loc]')
+        print('Actions: get, help, info, list, set')
+    elif verb == 'get':
         host = sat6_session.get_host(args[0])
         if host:
             if 'location_name' in host:
@@ -2155,11 +2173,11 @@ def main():
         We expect options and logger to be global
     '''
     logger.debug('Starting main()')
-    sat6_session = Sat6Object(server=options.server, username=options.username,
-                              password=options.password, authkey=options.authkey,
-                              org_id=options.org_id, org_name=options.org_name,
-                              insecure=options.insecure)
     task = options.args[0]
+    if task in ['help']:
+        options.parser.print_help()
+        sys.exit(os.EX_OK)
+
     if len(options.args) >= 2:
         verb = options.args[1]
         if verb == 'ls':
@@ -2167,25 +2185,30 @@ def main():
         elif verb == 'rm':
             verb = 'remove'
 
-        if verb not in ['get', 'add', 'remove', 'set', 'info', 'list', 'search']:
+        if verb not in ['add', 'get', 'help', 'info', 'list', 'remove', 'search', 'set']:
             options.parser.error('Unknown action: %s' % verb)
-        if verb == 'get' and len(options.args) != 3:
-            options.parser.error('Action get requires only a hostname.')
-        elif verb == 'add' and len(options.args) != 4:
+        if verb == 'add' and len(options.args) != 4:
             options.parser.error('Action add requires a hostname and target.')
-        elif verb == 'remove' and len(options.args) != 4:
-            options.parser.error('Action remove requires a hostname and target.')
-        elif verb == 'set' and len(options.args) != 4:
-            options.parser.error('Action set requires a hostname and target.')
+        elif verb == 'get' and len(options.args) != 3:
+            options.parser.error('Action get requires only a hostname.')
         elif verb == 'info' and len(options.args) != 3:
             options.parser.error('Action info requires only a target.')
-        elif verb == 'search' and len(options.args) != 3:
-            options.parser.error('Action search requires only a string.')
         elif verb == 'list' and len(options.args) != 2:
             options.parser.error('Action list accepts no arguments.')
+        elif verb == 'remove' and len(options.args) != 4:
+            options.parser.error('Action remove requires a hostname and target.')
+        elif verb == 'search' and len(options.args) != 3:
+            options.parser.error('Action search requires only a string.')
+        elif verb == 'set' and len(options.args) != 4:
+            options.parser.error('Action set requires a hostname and target.')
         logger.debug('Was asked to %s' % verb)
     else:
-        verb = None
+        verb = 'help'
+
+    sat6_session = Sat6Object(server=options.server, username=options.username,
+                              password=options.password, authkey=options.authkey,
+                              org_id=options.org_id, org_name=options.org_name,
+                              insecure=options.insecure)
 
     if task in ['collection', 'host-collection', 'hc']:
         task_collection(sat6_session, verb, *options.args[2:])
