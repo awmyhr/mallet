@@ -77,8 +77,8 @@ if sys.version_info <= (2, 6):
     sys.exit("Minimum Python version: 2.6")
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
-__version__ = '3.3.0' #: current version
-__revised__ = '20190213-145913' #: date of most recent revision
+__version__ = '3.4.0' #: current version
+__revised__ = '20190213-163815' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Light-weight, host-centric alternative to hammer'
 __description__ = '''Allows the user to perform a variety of tasks on a
@@ -499,7 +499,10 @@ class RunOptions(object):
         'name': None,
         'password': None,
         'hostname': None,
-        'username': None
+        'username': None,
+        'skipzero': False,
+        'hl_start': '\x1b[38;2;100;149;237m',
+        'hl_end':  '\x1b[0m'
     }
 
     _arguments = None
@@ -574,6 +577,20 @@ class RunOptions(object):
         return None
 
     @property
+    def hl_end(self):
+        ''' Class property '''
+        if self._options is not None:
+            return self._options.hl_end
+        return self._defaults['hl_end']
+
+    @property
+    def hl_start(self):
+        ''' Class property '''
+        if self._options is not None:
+            return self._options.hl_start
+        return self._defaults['hl_start']
+
+    @property
     def hostlist(self):
         ''' Class property '''
         if self._options is not None:
@@ -628,6 +645,13 @@ class RunOptions(object):
         if self._options is not None:
             return self._options.server
         return None
+
+    @property
+    def skipzero(self):
+        ''' Class property '''
+        if self._options is not None:
+            return self._options.skipzero
+        return self._defaults['skipzero']
 
     @property
     def username(self):
@@ -686,12 +710,21 @@ class RunOptions(object):
         parser.add_option('-K', '--userkey', dest='authkey', type='string',
                           help='Satellite user access key.',
                           default=self._configs.get('user', 'authkey'))
+        parser.add_option('--skipzero', dest='skipzero', action='store_true',
+                          help='Skip hosts with zero to report in lists.',
+                          default=self._configs.get('user', 'skipzero'))
 
         #-- Hidden Options
         #   These can *not* be set in a config file
         parser.add_option('--help-rest', dest='helprest', action='store_true',
                           help=optparse.SUPPRESS_HELP, default=None)
         #   These could be set in a config file
+        parser.add_option('--hl_end', dest='hl_end', type='string',
+                          help=optparse.SUPPRESS_HELP,
+                          default=self._configs.get('user', 'hl_end'))
+        parser.add_option('--hl_start', dest='hl_start', type='string',
+                          help=optparse.SUPPRESS_HELP,
+                          default=self._configs.get('user', 'hl_start'))
         parser.add_option('--ssl-insecure', dest='insecure', action='store_true',
                           help=optparse.SUPPRESS_HELP,
                           default=self._configs.get('server', 'insecure'))
@@ -973,14 +1006,12 @@ class UtilityClass(object):
 #==============================================================================
 class Sat6Object(object):
     ''' Class for interacting with Satellite 6 API '''
-    __version = '2.2.0'
+    __version = '2.3.0'
     #-- Max number of items returned per page.
     #   Though we allow this to be configured, KB articles say 100 is the
     #   optimal value to avoid timeouts.
     per_page = 100
     lookup_tables = {'lce': 'lut/lce_name.json'}
-    hl_start = '\x1b[38;2;100;149;237m'
-    hl_end = '\x1b[0m'
 
     def __init__(self, server=None, authkey=None,
                  org_id=None, org_name=None, insecure=False):
@@ -1786,10 +1817,10 @@ def task_collection(sat6_session, verb, *args):
         print('%-35s: %s' % ('Name', 'Host count'))
         print('=' * 70)
         for hcollec in sat6_session.get_hc_list(search):
-            print('%s%-35s: %s%s' % (sat6_session.hl_start,
+            print('%s%-35s: %s%s' % (options.hl_start,
                                      hcollec['name'],
                                      hcollec['total_hosts'],
-                                     sat6_session.hl_end))
+                                     options.hl_end))
         print('=' * 70)
     else:
         options.parser.error('host-collection does not support action: %s' % verb)
@@ -1843,9 +1874,9 @@ def task_cview(sat6_session, verb, *args):
         print('%-20s: %s' % ('Title', 'Description'))
         print('=' * 70)
         for cview in sat6_session.get_cv_list(search):
-            print('%s%-20s: %s%s' % (sat6_session.hl_start,
+            print('%s%-20s: %s%s' % (options.hl_start,
                                      cview['name'], cview['description'],
-                                     sat6_session.hl_end))
+                                     options.hl_end))
         print('=' * 70)
     else:
         options.parser.error('content-view does not support action: %s' % verb)
@@ -1885,22 +1916,38 @@ def task_errata(sat6_session, verb, *args):
             raise RuntimeError('Host %s not found.' % args[0])
     elif verb == 'list' or verb == 'search':
         print('Retrieving host list. This could take quite some time...')
-        if len(args) == 1:
+        if verb == 'search' and len(args) == 1:
             search = args[0]
             print('Search for: %s' % search)
         else:
             search = None
-        print('%-35s: %5s %5s %5s %5s' % ('Name', 'Bug', 'Enhan', 'Sec', 'Total'))
+        if verb == 'list' and len(args) == 1:
+            err_type = args[0]
+            print('%-35s: %5s' % ('Name', err_type))
+        else:
+            err_type = None
+            print('%-35s: %5s %5s %5s %5s' % ('Name', 'Bug', 'Enhan', 'Sec', 'Total'))
         print('=' * 70)
         for host in sat6_session.get_host_list(search):
             if 'content_facet_attributes' in host:
-                print('%s%-35s: %5d %5d %5d %5d%s' % (sat6_session.hl_start,
+                if err_type is None:
+                    if options.skipzero and host['content_facet_attributes']['errata_counts']['total'] == 0:
+                        continue
+                    print('%s%-35s: %5d %5d %5d %5d%s' % (options.hl_start,
                                          host['name'],
                                          host['content_facet_attributes']['errata_counts']['bugfix'],
                                          host['content_facet_attributes']['errata_counts']['enhancement'],
                                          host['content_facet_attributes']['errata_counts']['security'],
                                          host['content_facet_attributes']['errata_counts']['total'],
-                                         sat6_session.hl_end))
+                                         options.hl_end))
+                else:
+                    if options.skipzero and host['content_facet_attributes']['errata_counts'][err_type] == 0:
+                        continue
+                    print('%s%-35s: %5d%s' % (options.hl_start,
+                                         host['name'],
+                                         host['content_facet_attributes']['errata_counts'][err_type],
+                                         options.hl_end))
+
         print('=' * 70)
     else:
         options.parser.error('erratum does not support action: %s' % verb)
@@ -1966,14 +2013,14 @@ def task_host(sat6_session, verb, *args):
         print('=' * 70)
         for host in sat6_session.get_host_list(search):
             if 'content_facet_attributes' in host:
-                print('%s%-35s: %s%s' % (sat6_session.hl_start,
+                print('%s%-35s: %s%s' % (options.hl_start,
                                          host['name'],
                                          host['content_facet_attributes']['lifecycle_environment']['name'],
-                                         sat6_session.hl_end))
+                                         options.hl_end))
             else:
-                print('%s%-35s: %s' %   (sat6_session.hl_start,
+                print('%s%-35s: %s' %   (options.hl_start,
                                          host['name'],
-                                         sat6_session.hl_end))
+                                         options.hl_end))
         print('=' * 70)
     else:
         options.parser.error('host does not support action: %s' % verb)
@@ -2025,9 +2072,9 @@ def task_lce(sat6_session, verb, *args):
         for key, value in sorted(sat6_session.lutables['lce'].iteritems(),
                                  key=(lambda (k, v): (v, k)) ):
             if not key.startswith('_'):
-                print('%s%-35s: %s%s' % (sat6_session.hl_start,
+                print('%s%-35s: %s%s' % (options.hl_start,
                                          key, value,
-                                         sat6_session.hl_end))
+                                         options.hl_end))
         print('=' * 70)
         print('Note: The values are case insensitive.')
     else:
@@ -2087,9 +2134,9 @@ def task_location(sat6_session, verb, *args):
                 parent = sat6_session.get_loc(loc['parent_id'])['title']
             else:
                 parent = '[None]'
-            print('%s%-35s: %s%s' % (sat6_session.hl_start,
+            print('%s%-35s: %s%s' % (options.hl_start,
                                      loc['title'], parent,
-                                     sat6_session.hl_end))
+                                     options.hl_end))
         print('=' * 70)
     else:
         options.parser.error('location does not support action: %s' % verb)
@@ -2103,19 +2150,20 @@ def task__experiment(sat6_session, *args):
     if args:
         logger.debug('With args: %s' % args)
 
-    print('%-35s: %s' % ('Name', 'Life-Cycle Environment'))
-    print('=' * 70)
-    for host in sat6_session.get_host_list(search='os_major=6'):
-        if 'content_facet_attributes' in host:
-            print('%s%-35s: %s%s' % (sat6_session.hl_start,
-                                     host['name'],
-                                     host['content_facet_attributes']['lifecycle_environment']['name'],
-                                     sat6_session.hl_end))
-        else:
-            print('%s%-35s: %s' %   (sat6_session.hl_start,
-                                     host['name'],
-                                     sat6_session.hl_end))
-    print('=' * 70)
+    print(options.skipzero)
+    # print('%-35s: %s' % ('Name', 'Life-Cycle Environment'))
+    # print('=' * 70)
+    # for host in sat6_session.get_host_list(search='os_major=6'):
+    #     if 'content_facet_attributes' in host:
+    #         print('%s%-35s: %s%s' % (options.hl_start,
+    #                                  host['name'],
+    #                                  host['content_facet_attributes']['lifecycle_environment']['name'],
+    #                                  options.hl_end))
+    #     else:
+    #         print('%s%-35s: %s' %   (options.hl_start,
+    #                                  host['name'],
+    #                                  options.hl_end))
+    # print('=' * 70)
     # my_hc = sat6_session.get_hc('et_dse_linux')
     # print(sat6_session.results)
     # print(my_hc['id'])
@@ -2193,6 +2241,14 @@ def main():
             options.parser.error('Action get requires only a hostname.')
         elif verb == 'info' and len(options.args) != 3:
             options.parser.error('Action info requires only a target.')
+        elif verb == 'list' and task in ['errata', 'erratum', 'err']:
+            if len(options.args) == 2:
+                pass
+            elif len(options.args) == 3:
+                if options.args[2] not in ['bugfix', 'enhancement', 'security', 'total']:
+                    raise RuntimeError('Erratum list may only filter on bugfix, enhancement, security, or total')
+            else:
+                options.parser.error('Action list for erratum accepts maximum 1 argument.')
         elif verb == 'list' and len(options.args) != 2:
             options.parser.error('Action list accepts no arguments.')
         elif verb == 'remove' and len(options.args) != 4:
