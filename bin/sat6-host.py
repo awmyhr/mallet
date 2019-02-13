@@ -78,7 +78,7 @@ if sys.version_info <= (2, 6):
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 __version__ = '3.3.0' #: current version
-__revised__ = '20190213-142804' #: date of most recent revision
+__revised__ = '20190213-145913' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Light-weight, host-centric alternative to hammer'
 __description__ = '''Allows the user to perform a variety of tasks on a
@@ -91,6 +91,9 @@ Currently available tasks, [aliases] and (relevant actions) are:
  - host                  [h]   (get, help, info, list, search)
  - lifecycle-environment [lce] (get, help, info, list, set)
  - location              [loc] (get, help, info, list, set)
+
+The special task 'authkey' will take your Satellite username/password
+and print out the authkey to use in your config file.
 '''
 #------------------------------------------------------------------------------
 #-- The following few variables should be relatively static over life of script
@@ -727,6 +730,8 @@ class RunOptions(object):
                     parsed_opts.password = getpass.getpass('Password for Satellite server: ')
                 except ImportError:
                     raise ImportError('The getpass module is required.')
+            parsed_opts.authkey = base64.b64encode('%s:%s' % (parsed_opts.username, parsed_opts.password)).strip()
+            parsed_opts.password = None
 
         return parsed_opts, parsed_args
 
@@ -734,13 +739,12 @@ class RunOptions(object):
 #==============================================================================
 class UtilityClass(object):
     ''' Class for interacting with Satellite 6 API '''
-    __version = '1.1.0'
+    __version = '1.2.0'
 
     per_page = 100
 
-    def __init__(self, server=None, username=None, password=None,
-                 authkey=None, insecure=False, token=None, client_id=None,
-                 cookiefile=None):
+    def __init__(self, server=None, authkey=None, insecure=False,
+                 token=None, client_id=None, cookiefile=None):
         logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
         logger.debug('Initiallizing UtilityClass version %s.', self.__version)
         logger.debug(locals())
@@ -748,13 +752,7 @@ class UtilityClass(object):
             authorization = 'Bearer %s' % token['access_token']
         else:
             if authkey is None:
-                if username is None or password is None:
-                    raise RuntimeError('Must provide either authkey or username/password pair.')
-                username = username
-                authkey = base64.b64encode('%s:%s' % (username, password)).strip()
-                logger.debug('Created authkey for %s: %s' % (username, authkey))
-            else:
-                authkey = authkey
+                raise RuntimeError('authkey not provided.')
             authorization = 'Basic %s' % authkey
         self.connection = requests.Session()
         self.connection.headers = {
@@ -975,7 +973,7 @@ class UtilityClass(object):
 #==============================================================================
 class Sat6Object(object):
     ''' Class for interacting with Satellite 6 API '''
-    __version = '2.1.0'
+    __version = '2.2.0'
     #-- Max number of items returned per page.
     #   Though we allow this to be configured, KB articles say 100 is the
     #   optimal value to avoid timeouts.
@@ -984,8 +982,8 @@ class Sat6Object(object):
     hl_start = '\x1b[38;2;100;149;237m'
     hl_end = '\x1b[0m'
 
-    def __init__(self, server=None, username=None, password=None,
-                 authkey=None, org_id=None, org_name=None, insecure=False):
+    def __init__(self, server=None, authkey=None,
+                 org_id=None, org_name=None, insecure=False):
         logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
         logger.debug('Initiallizing Sat6Object version %s.', self.__version)
         if server is None:
@@ -995,8 +993,7 @@ class Sat6Object(object):
         self.pub = '%s/pub' % self.url
         self.foreman = '%s/api/v2' % self.url
         self.katello = '%s/katello/api' % self.url
-        self.util = UtilityClass(username=username, password=password,
-                                 authkey=authkey, insecure=insecure,
+        self.util = UtilityClass(authkey=authkey, insecure=insecure,
                                  cookiefile=os.getenv("HOME") + "/.sat6_api_session")
         self.results = {"success": None, "msg": None, "return": None}
         self.lutables = {}
@@ -2177,6 +2174,9 @@ def main():
     if task in ['help']:
         options.parser.print_help()
         sys.exit(os.EX_OK)
+    elif task in ['authkey']:
+        print(options.authkey)
+        sys.exit(os.EX_OK)
 
     if len(options.args) >= 2:
         verb = options.args[1]
@@ -2205,8 +2205,7 @@ def main():
     else:
         verb = 'help'
 
-    sat6_session = Sat6Object(server=options.server, username=options.username,
-                              password=options.password, authkey=options.authkey,
+    sat6_session = Sat6Object(server=options.server, authkey=options.authkey,
                               org_id=options.org_id, org_name=options.org_name,
                               insecure=options.insecure)
 
@@ -2261,7 +2260,11 @@ if __name__ == '__main__':
     except SystemExit as error: # Catches sys.exit()
         #_, error, _ = sys.exc_info()
         logger.debug('Caught SystemExit')
-        logger.warning('%s: [SystemExit] %s', __basename__, error)
+        import pprint
+        if error[0] != 0:
+            logger.warning('%s: [SystemExit] %s', __basename__, error)
+        else:
+            EXIT_STATUS = os.EX_OK
     except IOError as error:
         #_, error, _ = sys.exc_info()
         logger.debug('Caught IOError')
