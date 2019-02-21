@@ -77,8 +77,8 @@ if sys.version_info <= (2, 6):
     sys.exit("Minimum Python version: 2.6")
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
-__version__ = '3.4.0' #: current version
-__revised__ = '20190213-163815' #: date of most recent revision
+__version__ = '3.4.1' #: current version
+__revised__ = '20190221-121618' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Light-weight, host-centric alternative to hammer'
 __description__ = '''Allows the user to perform a variety of tasks on a
@@ -1929,8 +1929,12 @@ def task_errata(sat6_session, verb, *args):
             print('%-35s: %5s %5s %5s %5s' % ('Name', 'Bug', 'Enhan', 'Sec', 'Total'))
         print('=' * 70)
         for host in sat6_session.get_host_list(search):
-            if 'content_facet_attributes' in host:
-                if err_type is None:
+            if host is None:
+                continue
+            elif 'content_facet_attributes' in host:
+                if host['content_facet_attributes']['errata_counts'] is None:
+                    continue
+                elif err_type is None:
                     if options.skipzero and host['content_facet_attributes']['errata_counts']['total'] == 0:
                         continue
                     print('%s%-35s: %5d %5d %5d %5d%s' % (options.hl_start,
