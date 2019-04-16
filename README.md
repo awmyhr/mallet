@@ -1,6 +1,6 @@
-# The \*NIXLand Satellite 6 Project _(NSat6P)_
+# mallet: like a hammer but not _(mallet)_
 
-> Installation, Configuration, Care and Feeding of Satellite 6
+> Light-weight, host-centric alternative to hammer
 
 ## Table of Contents
 
