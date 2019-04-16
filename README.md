@@ -1,4 +1,4 @@
-# mallet: like a hammer but not _(mallet)_
+# mallet: a light-weight hammer for Satellite 6 _(mallet)_
 
 > Light-weight, host-centric alternative to hammer
 
