@@ -6,10 +6,10 @@
 #-- NOTE: Tabs and spaces do NOT mix!! '-tt' will flag violations as an error.
 #===============================================================================
 '''
-    :program:`sat6-host.py`
+    :program:`mallet.py`
     ============================================================
 
-    In addition to the options listed in help output, :program:`sat6-host.py` includes
+    In addition to the options listed in help output, :program:`mallet.py` includes
     the following 'hidden' optoins:
 
     .. option:: --help-rest
@@ -77,8 +77,8 @@ if sys.version_info <= (2, 6):
     sys.exit("Minimum Python version: 2.6")
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
-__version__ = '3.4.1' #: current version
-__revised__ = '20190221-121618' #: date of most recent revision
+__version__ = '3.5.0' #: current version
+__revised__ = '20190416-141143' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Light-weight, host-centric alternative to hammer'
 __description__ = '''Allows the user to perform a variety of tasks on a
@@ -102,7 +102,7 @@ __created__ = '2018-12-12'               #: date script originlly created
 __copyright__ = '2018 awmyhr' #: Copyright short name
 __license__ = 'Apache-2.0'
 __gnu_version__ = False #: If True print GNU version string (which includes copyright/license)
-__cononical_name__ = 'sat6-host.py' #: static name, *NOT* os.path.basename(sys.argv[0])
+__cononical_name__ = 'mallet' #: static name, *NOT* os.path.basename(sys.argv[0])
 __project_name__ = 'The *NIXLand Satellite 6 Project'  #: name of overall project, if needed
 __project_home__ = 'https://github.com/awmyhr/NSat6P'  #: where to find source/documentation
 __template_version__ = '2.5.2'  #: version of template file used
