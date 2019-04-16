@@ -4,7 +4,7 @@
 #------------------------------------------------------------------------------
 # name:    Satellite 6 Notes (satellite6Notes)
 # author:  awmyhr@gmail.com
-# revised: 20190117-131737
+# revised: 20190416-140320
 # created: 2016-12-07
 #------------------------------------------------------------------------------
 #-- NOTE: This document was compiled running Satellite 6.2.4 on RHEL 7.3
@@ -319,6 +319,15 @@ for CVIEW in ${VIEWS}; do
                               --organization "${SAT6_ORG}" \
                               --description  "Published on ${DATE} by ${SAT6_USER}"
 done
+#-- Foreman console
+foreman-rake console
+#-- This gives a promptless cli
+#   Some useful commands to clean up stuck tasks
+ForemanTasks::Task.where(:label => "Actions::Katello::Repository::Sync", :state => "paused").map { |task| task.update_column(:state, "stopped") }
+ForemanTasks::Task.where(:label => "Actions::Katello::CapsuleContent::Sync", :state => "paused").map { |task| task.update_column(:state, "stopped") }
+ForemanTasks::Task.where(:label => "Actions::Katello::CapsuleContent::Sync", :state => "planning").map { |task| task.update_column(:state, "stopped") }
+ForemanTasks::Task.where(:label => "Actions::Katello::RepositorySet::ScanCdn", :state => "running").map { |task| task.update_column(:state, "stopped") }
+
 #------------------------------------------------------------------------------
 #-- Backing up (Based on chapter 6 in Server Admin Guide)
 #   REF: https://access.redhat.com/documentation/en/red-hat-satellite/6.2/html/server-administration-guide
