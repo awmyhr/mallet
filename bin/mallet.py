@@ -77,8 +77,8 @@ if sys.version_info <= (2, 6):
     sys.exit("Minimum Python version: 2.6")
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
-__version__ = '3.5.0' #: current version
-__revised__ = '20190416-141143' #: date of most recent revision
+__version__ = '3.5.1' #: current version
+__revised__ = '20190417-152743' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Light-weight, host-centric alternative to hammer'
 __description__ = '''Allows the user to perform a variety of tasks on a
@@ -1105,7 +1105,7 @@ class Sat6Object(object):
                 if self.results['success']:
                     hostname = self.results['return']['id']
                 else:
-                    logger.debug('find unsuccessful: %s' % self.results)
+                    logger.debug('find unsuccessful: %s', self.results)
                     hostname = None
             if hostname is not None:
                 self.results = self.util.get_item('%s/hosts/%s' % (self.foreman, hostname), 'host_id %s' % hostname)
@@ -1158,7 +1158,7 @@ class Sat6Object(object):
                 if self.results['success']:
                     cview = self.results['return']['id']
                 else:
-                    logger.debug('find unsuccessful: %s' % self.results)
+                    logger.debug('find unsuccessful: %s', self.results)
                     cview = None
             if cview is not None:
                 self.results = self.util.get_item('%s/content_views/%s' % (self.katello, cview), 'cview_id %s' % cview)
@@ -1211,7 +1211,7 @@ class Sat6Object(object):
                 if self.results['success']:
                     collection = self.results['return']['id']
                 else:
-                    logger.debug('find unsuccessful: %s' % self.results)
+                    logger.debug('find unsuccessful: %s', self.results)
                     collection = None
             if collection is not None:
                 self.results = self.util.get_item('%s/host_collections/%s' % (self.katello, collection), 'collection_id %s' % collection)
@@ -1301,12 +1301,12 @@ class Sat6Object(object):
                 if self.results['success']:
                     organization = self.results['return']['id']
                 else:
-                    logger.debug('find unsuccessful: %s' % self.results)
+                    logger.debug('find unsuccessful: %s', self.results)
                     organization = None
             if organization is not None:
                 self.results = self.util.get_item('%s/organizations/%s' % (self.katello, organization), 'org_id %s' % organization)
 
-        logger.debug('get_org: ', self.results['msg'])
+        logger.debug('get_org: %s', self.results['msg'])
         if self.results['success']:
             return self.results['return']
         return None
@@ -1348,7 +1348,7 @@ class Sat6Object(object):
                 if self.results['success']:
                     lce_name = self.results['return']['id']
                 else:
-                    logger.debug('find unsuccessful: %s' % self.results)
+                    logger.debug('find unsuccessful: %s', self.results)
                     lce_name = None
             if lce_name is not None:
                 self.results = self.util.get_item('%s/organizations/%s/environments/%s' % (self.katello, org_id, lce_name), 'lce_id %s' % lce_name)
@@ -1411,7 +1411,7 @@ class Sat6Object(object):
                 if self.results['success']:
                     location = self.results['return']['id']
                 else:
-                    logger.debug('find unsuccessful: %s' % self.results)
+                    logger.debug('find unsuccessful: %s', self.results)
                     location = None
             if location is not None:
                 self.results = self.util.get_item('%s/locations/%s' % (self.foreman, location), 'loc_id %s' % location)
@@ -1430,7 +1430,7 @@ class Sat6Object(object):
         '''
         logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
 
-        return self.util.get_list('%s/locations' % (self.foreman), search=search, field=field)
+        return self.util.get_list('%s/locations', (self.foreman), search=search, field=field)
 
     def set_host_cv(self, host=None, cview=None):
         ''' Set the Content View of a Sat6 host
@@ -1754,7 +1754,7 @@ def task_collection(sat6_session, verb, *args):
     ''' Manipulate host collections '''
     logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
     if args:
-        logger.debug('With verb: %s; and args: %s' % (verb, args))
+        logger.debug('With verb: %s; and args: %s', verb, args)
 
     if verb == 'help':
         print('Task: host-collection [alias: hc]')
@@ -1832,7 +1832,7 @@ def task_cview(sat6_session, verb, *args):
     ''' Manipulate Locations '''
     logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
     if args:
-        logger.debug('With verb: %s; and args: %s' % (verb, args))
+        logger.debug('With verb: %s; and args: %s', verb, args)
 
     if verb == 'help':
         print('Task: content-view [alias: cv]')
@@ -1888,7 +1888,7 @@ def task_errata(sat6_session, verb, *args):
     ''' Print host list '''
     logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
     if args:
-        logger.debug('With verb: %s; and args: %s' % (verb, args))
+        logger.debug('With verb: %s; and args: %s', verb, args)
 
     if verb == 'help':
         print('Task: erratum [alias: err]')
@@ -1963,7 +1963,7 @@ def task_host(sat6_session, verb, *args):
     ''' Print host list '''
     logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
     if args:
-        logger.debug('With verb: %s; and args: %s' % (verb, args))
+        logger.debug('With verb: %s; and args: %s', verb, args)
 
     if verb == 'help':
         print('Task: host [alias: h]')
@@ -2036,7 +2036,7 @@ def task_lce(sat6_session, verb, *args):
     ''' Manipulate Life-Cycle Environments '''
     logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
     if args:
-        logger.debug('With verb: %s; and args: %s' % (verb, args))
+        logger.debug('With verb: %s; and args: %s', verb, args)
 
     if verb == 'help':
         print('Task: lifecycle-environment [alias: lce]')
@@ -2091,7 +2091,7 @@ def task_location(sat6_session, verb, *args):
     ''' Manipulate Locations '''
     logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
     if args:
-        logger.debug('With verb: %s; and args: %s' % (verb, args))
+        logger.debug('With verb: %s; and args: %s', verb, args)
 
     if verb == 'help':
         print('Task: location [alias: loc]')
@@ -2152,7 +2152,7 @@ def task__experiment(sat6_session, *args):
     ''' Playground for future features '''
     logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
     if args:
-        logger.debug('With args: %s' % args)
+        logger.debug('With args: %s', args)
 
     print(options.skipzero)
     # print('%-35s: %s' % ('Name', 'Life-Cycle Environment'))
@@ -2186,7 +2186,7 @@ def task__test(sat6_session, *args):
     ''' Runs a test suite '''
     logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
     if args:
-        logger.debug('With args: %s' % args)
+        logger.debug('With args: %s', args)
 
     print('Content Views')
     for cview in sat6_session.get_cv_list():
@@ -2261,7 +2261,7 @@ def main():
             options.parser.error('Action search requires only a string.')
         elif verb == 'set' and len(options.args) != 4:
             options.parser.error('Action set requires a hostname and target.')
-        logger.debug('Was asked to %s' % verb)
+        logger.debug('Was asked to %s', verb)
     else:
         verb = 'help'
 
