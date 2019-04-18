@@ -77,8 +77,8 @@ if sys.version_info <= (2, 6):
     sys.exit("Minimum Python version: 2.6")
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
-__version__ = '3.5.1' #: current version
-__revised__ = '20190417-152743' #: date of most recent revision
+__version__ = '3.5.2' #: current version
+__revised__ = '20190418-110615' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Light-weight, host-centric alternative to hammer'
 __description__ = '''Allows the user to perform a variety of tasks on a
@@ -103,8 +103,8 @@ __copyright__ = '2018 awmyhr' #: Copyright short name
 __license__ = 'Apache-2.0'
 __gnu_version__ = False #: If True print GNU version string (which includes copyright/license)
 __cononical_name__ = 'mallet' #: static name, *NOT* os.path.basename(sys.argv[0])
-__project_name__ = 'The *NIXLand Satellite 6 Project'  #: name of overall project, if needed
-__project_home__ = 'https://github.com/awmyhr/NSat6P'  #: where to find source/documentation
+__project_name__ = 'mallet: a lighter hammer'  #: name of overall project, if needed
+__project_home__ = 'https://github.com/awmyhr/mallet'  #: where to find source/documentation
 __template_version__ = '2.5.2'  #: version of template file used
 #-- We are not using this variable for now.
 __docformat__ = 'reStructuredText en'       #: attempted style for documentation
@@ -1006,7 +1006,7 @@ class UtilityClass(object):
 #==============================================================================
 class Sat6Object(object):
     ''' Class for interacting with Satellite 6 API '''
-    __version = '2.3.0'
+    __version = '2.3.1'
     #-- Max number of items returned per page.
     #   Though we allow this to be configured, KB articles say 100 is the
     #   optimal value to avoid timeouts.
@@ -1023,7 +1023,8 @@ class Sat6Object(object):
         self.url = 'https://%s' % server
         self.pub = '%s/pub' % self.url
         self.foreman = '%s/api/v2' % self.url
-        self.katello = '%s/katello/api' % self.url
+        self.katello = '%s/katello/api/v2' % self.url
+        # self.kcert = '/etc/rhsm/ca/katello-server-ca.pem'
         self.util = UtilityClass(authkey=authkey, insecure=insecure,
                                  cookiefile=os.getenv("HOME") + "/.sat6_api_session")
         self.results = {"success": None, "msg": None, "return": None}
