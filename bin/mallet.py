@@ -77,8 +77,8 @@ if sys.version_info <= (2, 6):
     sys.exit("Minimum Python version: 2.6")
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
-__version__ = '3.5.2' #: current version
-__revised__ = '20190418-110615' #: date of most recent revision
+__version__ = '3.6.0-beta' #: current version
+__revised__ = '20190508-133449' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Light-weight, host-centric alternative to hammer'
 __description__ = '''Allows the user to perform a variety of tasks on a
@@ -89,6 +89,7 @@ Currently available tasks, [aliases] and (relevant actions) are:
  - content-view          [cv]  (get, help, info, list, search, set)
  - erratum               [err] (get, help, info, list, search)
  - host                  [h]   (get, help, info, list, search)
+ - hypervisor            [hv]  (get, help, info, list)
  - lifecycle-environment [lce] (get, help, info, list, set)
  - location              [loc] (get, help, info, list, set)
 
@@ -772,7 +773,7 @@ class RunOptions(object):
 #==============================================================================
 class UtilityClass(object):
     ''' Class for interacting with Satellite 6 API '''
-    __version = '1.2.0'
+    __version = '1.3.0'
 
     per_page = 100
 
@@ -985,10 +986,11 @@ class UtilityClass(object):
         if search is None:
             params = {'page': 1, 'per_page': per_page}
         else:
-            if '=' in search:
-                field, search = search.split('=')
-            params = {'page': 1, 'per_page': per_page,
-                      'search': '%s~"%s"' % (field, search)}
+            if any(symbol in search for symbol in '=~!^'):
+                params = {'page': 1, 'per_page': per_page, 'search': search}
+            else:
+                params = {'page': 1, 'per_page': per_page,
+                          'search': '%s~"%s"' % (field, search)}
         item = 0
         page_item = 0
 
@@ -1115,6 +1117,28 @@ class Sat6Object(object):
         if self.results['success']:
             return self.results['return']
         return None
+
+    def get_host_subs(self, hostname=None):
+        ''' comment
+        '''
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        self.results = {"success": False, "msg": None, "return": None}
+
+        # if hostname is None:
+        #     self.results['msg'] = 'Error: Hostname passed was type None.'
+        # else:
+        #     logger.debug('Looking for host: %s', hostname)
+
+        #     if not isinstance(hostname, int):
+        #         if not self.util.is_valid_ipv4(hostname):
+        #             hostname = hostname.split('.')[0]
+        #         self.results = self.util.find_item('%s/hosts' % (self.foreman), hostname)
+        #         if self.results['success']:
+        #             hostname = self.results['return']['id']
+        #         else:
+        #             logger.debug('find unsuccessful: %s', self.results)
+        #             hostname = None
+        return self.util.get_list('%s/hosts/%s/subscriptions' % (self.foreman, hostname))
 
     def get_host_list(self, search=None, field='name'):
         ''' This returns a list of Satellite 6 Hosts.
@@ -2033,6 +2057,74 @@ def task_host(sat6_session, verb, *args):
 
 
 #==============================================================================
+def task_hypervisor(sat6_session, verb, *args):
+    ''' Print host list '''
+    logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+    if args:
+        logger.debug('With verb: %s; and args: %s', verb, args)
+
+    if verb == 'help':
+        print('Task: hypervisor [alias: hv]')
+        print('Actions: get, help, info, list')
+    elif verb == 'get':
+        host = sat6_session.get_host(args[0])
+        if host:
+            print(host['subscription_status_label'])
+        else:
+            raise RuntimeError('Host %s not found.' % args[0])
+    elif verb == 'info':
+        host = sat6_session.get_host(args[0])
+        if host:
+            print(host['name'], end ="")
+            if host['name'] != host['certname']:
+                print("(%s)" % host['certname'], end ="")
+            if host['ip'] is not None:
+                print(" [%s]" % host['ip'], end ="")
+            print()
+
+            print('%s - %s' % (host['organization_name'],host['location_name']))
+            if host['operatingsystem_name'] is not None:
+                print('OS: %s' % host['operatingsystem_name'])
+            if 'model_name' in host and host['model_name'] is not None:
+                print('Model: %s' % host['model_name'])
+            print('Status: %s' % host['subscription_status_label'])
+
+            if len(host['subscription_facet_attributes']['virtual_guests']) > 0:
+                print('Guests: ', end ="")
+                for guest in host['subscription_facet_attributes']['virtual_guests']:
+                    print(guest['name'], end =" ")
+                print()
+            if host['subscription_facet_attributes']['virtual_host'] is not None:
+                print('Hypervisor: %s' % host['subscription_facet_attributes']['virtual_host']['name'])
+            if 'content_facet_attributes' in host:
+                print('CV:  %s' % host['content_facet_attributes']['content_view_name'])
+                print('LCE: %s' % host['content_facet_attributes']['lifecycle_environment_name'])
+                print('Errata needed: %s' % host['content_facet_attributes']['errata_counts']['total'])
+            else:
+                print('Not a content host.')
+        else:
+            raise RuntimeError('Host %s not found.' % args[0])
+    elif verb == 'list':
+        print('Retrieving hypervisor list. This could take quite some time...')
+        print('%-35s: %s' % ('Name', 'Subscription Status'))
+        print('=' * 70)
+        for host in sat6_session.get_host_list('hypervisor=true'):
+            if 'subscription_status_label' in host:
+                print('%s%-35s: %s%s' % (options.hl_start,
+                                         host['name'].rstrip('-1').lstrip('virt-who-'),
+                                         host['subscription_status_label'],
+                                         options.hl_end))
+            else:
+                print('%s%-35s: %s' %   (options.hl_start,
+                                         host['name'],
+                                         options.hl_end))
+        print('=' * 70)
+    else:
+        options.parser.error('host does not support action: %s' % verb)
+    return True
+
+
+#==============================================================================
 def task_lce(sat6_session, verb, *args):
     ''' Manipulate Life-Cycle Environments '''
     logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
@@ -2155,7 +2247,12 @@ def task__experiment(sat6_session, *args):
     if args:
         logger.debug('With args: %s', args)
 
-    print(options.skipzero)
+    for host in sat6_session.get_host_list('hypervisor=true'):
+        host_info = sat6_session.get_host(host['id'])
+        print('%-35s: %s' % (host['name'],
+                             len(host_info['subscription_facet_attributes']['virtual_guests'])))
+        for sub in sat6_session.get_host_subs(host['id']):
+            print('     - %s' % sub['name'])
     # print('%-35s: %s' % ('Name', 'Life-Cycle Environment'))
     # print('=' * 70)
     # for host in sat6_session.get_host_list(search='os_major=6'):
@@ -2278,6 +2375,8 @@ def main():
         task_errata(sat6_session, verb, *options.args[2:])
     elif task in ['host', 'h']:
         task_host(sat6_session, verb, *options.args[2:])
+    elif task in ['hypervisor', 'hv']:
+        task_hypervisor(sat6_session, verb, *options.args[2:])
     elif task in ['lifecycle', 'lifecycle-environment', 'lce']:
         task_lce(sat6_session, verb, *options.args[2:])
     elif task in ['location', 'loc']:
