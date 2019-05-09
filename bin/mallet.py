@@ -77,8 +77,8 @@ if sys.version_info <= (2, 6):
     sys.exit("Minimum Python version: 2.6")
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
-__version__ = '3.6.0-beta' #: current version
-__revised__ = '20190508-133449' #: date of most recent revision
+__version__ = '3.6.0' #: current version
+__revised__ = '20190509-130025' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Light-weight, host-centric alternative to hammer'
 __description__ = '''Allows the user to perform a variety of tasks on a
@@ -95,6 +95,8 @@ Currently available tasks, [aliases] and (relevant actions) are:
 
 The special task 'authkey' will take your Satellite username/password
 and print out the authkey to use in your config file.
+
+There are a variety of reports available with the special task 'report'.
 '''
 #------------------------------------------------------------------------------
 #-- The following few variables should be relatively static over life of script
@@ -1455,7 +1457,7 @@ class Sat6Object(object):
         '''
         logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
 
-        return self.util.get_list('%s/locations', (self.foreman), search=search, field=field)
+        return self.util.get_list('%s/locations' % (self.foreman), search=search, field=field)
 
     def set_host_cv(self, host=None, cview=None):
         ''' Set the Content View of a Sat6 host
@@ -2096,12 +2098,9 @@ def task_hypervisor(sat6_session, verb, *args):
                 print()
             if host['subscription_facet_attributes']['virtual_host'] is not None:
                 print('Hypervisor: %s' % host['subscription_facet_attributes']['virtual_host']['name'])
-            if 'content_facet_attributes' in host:
-                print('CV:  %s' % host['content_facet_attributes']['content_view_name'])
-                print('LCE: %s' % host['content_facet_attributes']['lifecycle_environment_name'])
-                print('Errata needed: %s' % host['content_facet_attributes']['errata_counts']['total'])
-            else:
-                print('Not a content host.')
+            print('Subscriptions:')
+            for sub in sat6_session.get_host_subs(host['id']):
+                print('   - %s (%s)' % (sub['product_name'].replace('Red Hat Enterprise Linux', 'RHEL'), sub['product_id']))
         else:
             raise RuntimeError('Host %s not found.' % args[0])
     elif verb == 'list':
@@ -2116,7 +2115,7 @@ def task_hypervisor(sat6_session, verb, *args):
                                          options.hl_end))
             else:
                 print('%s%-35s: %s' %   (options.hl_start,
-                                         host['name'],
+                                         host['name'].rstrip('-1').lstrip('virt-who-'),
                                          options.hl_end))
         print('=' * 70)
     else:
@@ -2241,18 +2240,51 @@ def task_location(sat6_session, verb, *args):
 
 
 #==============================================================================
+def task_report(sat6_session, report, *args):
+    ''' Manipulate Locations '''
+    logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+    if args:
+        logger.debug('With report: %s; and args: %s', report, args)
+
+    if report == 'help':
+        print('Task: report')
+        print('Available Reports:')
+        print('     hypervisor-subscriptions')
+    elif report == 'hypervisor-subscriptions':
+        for host in sat6_session.get_host_list('hypervisor=true'):
+            host_info = sat6_session.get_host(host['id'])
+            num_vm = len(host_info['subscription_facet_attributes']['virtual_guests'])
+            host_subs = []
+            for sub in sat6_session.get_host_subs(host['id']):
+                host_subs.append(sub)
+            num_subs = len(host_subs)
+            if num_subs == 0 and num_vm == 0:
+                continue
+            print('-' * 79)
+            host_name = host['name'].rstrip('-1').lstrip('virt-who-')
+            print('%-60s VMs: %3s Subs: %3s' % (host_name, num_vm, num_subs))
+            if num_subs == 0:
+                print('%s   - need subscription%s' % (options.hl_start, options.hl_end))
+            elif num_vm == 0:
+                print('%s   - no vms%s' % (options.hl_start, options.hl_end))
+            if num_subs != 0:
+                for sub in host_subs:
+                    if not sub['multi_entitlement']:
+                        print('%s' % options.hl_start, end="")
+                    print('   - %s (%s)%s' % (sub['product_name'].replace('Red Hat Enterprise Linux', 'RHEL'), sub['product_id'], options.hl_end))
+        print('-' * 79)
+    else:
+        options.parser.error('Unknown report: %s' % report)
+    return True
+
+
+#==============================================================================
 def task__experiment(sat6_session, *args):
     ''' Playground for future features '''
     logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
     if args:
         logger.debug('With args: %s', args)
 
-    for host in sat6_session.get_host_list('hypervisor=true'):
-        host_info = sat6_session.get_host(host['id'])
-        print('%-35s: %s' % (host['name'],
-                             len(host_info['subscription_facet_attributes']['virtual_guests'])))
-        for sub in sat6_session.get_host_subs(host['id']):
-            print('     - %s' % sub['name'])
     # print('%-35s: %s' % ('Name', 'Life-Cycle Environment'))
     # print('=' * 70)
     # for host in sat6_session.get_host_list(search='os_major=6'):
@@ -2327,8 +2359,12 @@ def main():
     elif task in ['authkey']:
         print(options.authkey)
         sys.exit(os.EX_OK)
-
-    if len(options.args) >= 2:
+    elif task in ['report']:
+        if len(options.args) >= 2:
+            report = options.args[1]
+        else:
+            report = 'help'
+    elif len(options.args) >= 2:
         verb = options.args[1]
         if verb == 'ls':
             verb = 'list'
@@ -2381,6 +2417,8 @@ def main():
         task_lce(sat6_session, verb, *options.args[2:])
     elif task in ['location', 'loc']:
         task_location(sat6_session, verb, *options.args[2:])
+    elif task in ['report']:
+        task_report(sat6_session, report, *options.args[2:])
     elif task == '_experiment':
         task__experiment(sat6_session, *options.args[1:])
     elif task == '_test':
