@@ -77,8 +77,8 @@ if sys.version_info <= (2, 6):
     sys.exit("Minimum Python version: 2.6")
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
-__version__ = '3.7.0-beta' #: current version
-__revised__ = '20190513-162756' #: date of most recent revision
+__version__ = '3.7.0-beta02' #: current version
+__revised__ = '20190513-170220' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Light-weight, host-centric alternative to hammer'
 __description__ = '''Allows the user to perform a variety of tasks on a
@@ -2277,34 +2277,47 @@ def task_report(sat6_session, report, *args):
         print('-' * 79)
     elif report == 'system-overview':
         print('Retrieving host list. This could take quite some time...')
-        print('%-30s: %6s %6s %6s %6s %26s %s' % (
-            'Name', 'SecErr', 'BugErr', 'EnhErr', 'Outdat', 'Last Update', 'Subscription Status'))
-        print('=' * 90)
-        for host in sat6_session.get_host_list('hypervisor=false'):
+        print('%-30s: %8s %8s %-24s %-s' % (
+            'Name', 'Errata', 'Packages', 'Base OS', 'Subscription Status'))
+        print('=' * 95)
+        # for host in sat6_session.get_host_list('hypervisor=false'):
+        for host in sat6_session.get_host_list():
             if host is None or 'content_facet_attributes' not in host:
                 continue
+            print('%s%-30s: ' % (options.hl_start, host['name']), end='')
+            if 'content_facet_attributes' in host:
+                if host['content_facet_attributes']['errata_counts'] is not None:
+                    print('%8d ' % (
+                        host['content_facet_attributes']['errata_counts']['total'],
+                        ), end='')
+                else:
+                    print('-------- ', end='')
+                if 'upgradable_package_count' in host['content_facet_attributes']:
+                    print('%8d ' % (host['content_facet_attributes']['upgradable_package_count']), end='')
+                elif 'applicable_package_count' in host['content_facet_attributes']:
+                    print('%8d ' % (host['content_facet_attributes']['applicable_package_count']), end='')
+                else:
+                    print('-------- ', end='')
+            else:
+                print('-------- -------- ')
+            #-
             if host['operatingsystem_name'] is not None:
                 if host['architecture_name'] is not None:
-                    display_os = '%s %s' % (host['operatingsystem_name'], host['architecture_name'])
+                    display_os = '%s %s ' % (host['operatingsystem_name'], host['architecture_name'])
                 else:
-                    display_os = '%s' % (host['operatingsystem_name'])
+                    display_os = '%s ' % (host['operatingsystem_name'])
             else:
-                display_os = 'unkonwn'
-            print('%s%-30s: ' % (options.hl_start, host['name']), end='')
-            if host['content_facet_attributes']['errata_counts'] is not None:
-                print('%6d %6d %6d %6d' % (
-                    host['content_facet_attributes']['errata_counts']['security'],
-                    host['content_facet_attributes']['errata_counts']['bugfix'],
-                    host['content_facet_attributes']['errata_counts']['enhancement'],
-                    host['content_facet_attributes']['upgradable_package_count'],
-                    ), end='')
+                display_os = 'unknown'
+            print('%-24s' % (display_os), end='')
+            #-
+            if 'subscription_status_label' in host:
+                print('%s' % host['subscription_status_label'], end='')
             else:
-                print('------ ------ ------ ------')
-            print(' %s' % host['updated_at'], end='')
-            print(' %s' % host['subscription_status_label'], end='')
-            print('%s' % (options.hl_end))
+                print('unknown', end='')
+            #-
+            print('%-s' % (options.hl_end))
 
-        print('=' * 90)
+        print('=' * 95)
     elif report == 'system-overview-csv':
         print('name,Id,Security Errata,Bug Errata,Enhancement Errata,Outdated Packages,Last Checkin,Subscription Status,Base OS')
         for host in sat6_session.get_host_list():
@@ -2356,6 +2369,11 @@ def task__experiment(sat6_session, *args):
     if args:
         logger.debug('With args: %s', args)
 
+    for host in sat6_session.get_host_list():
+        if 'errata_status' in host:
+            print('%-30s: (%s) %s' % (host['name'],host['errata_status'],host['errata_status_label']))
+        else:
+            print('%-30s: [no info]' % (host['name']))
     # print('%-35s: %s' % ('Name', 'Life-Cycle Environment'))
     # print('=' * 70)
     # for host in sat6_session.get_host_list(search='os_major=6'):
