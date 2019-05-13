@@ -77,8 +77,8 @@ if sys.version_info <= (2, 6):
     sys.exit("Minimum Python version: 2.6")
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
-__version__ = '3.6.0' #: current version
-__revised__ = '20190509-130025' #: date of most recent revision
+__version__ = '3.6.1' #: current version
+__revised__ = '20190513-092031' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Light-weight, host-centric alternative to hammer'
 __description__ = '''Allows the user to perform a variety of tasks on a
@@ -2247,7 +2247,7 @@ def task_report(sat6_session, report, *args):
         logger.debug('With report: %s; and args: %s', report, args)
 
     if report == 'help':
-        print('Task: report')
+        print('Task: report [alias: r]')
         print('Available Reports:')
         print('     hypervisor-subscriptions')
     elif report == 'hypervisor-subscriptions':
@@ -2359,7 +2359,7 @@ def main():
     elif task in ['authkey']:
         print(options.authkey)
         sys.exit(os.EX_OK)
-    elif task in ['report']:
+    elif task in ['report', 'r']:
         if len(options.args) >= 2:
             report = options.args[1]
         else:
@@ -2417,7 +2417,7 @@ def main():
         task_lce(sat6_session, verb, *options.args[2:])
     elif task in ['location', 'loc']:
         task_location(sat6_session, verb, *options.args[2:])
-    elif task in ['report']:
+    elif task in ['report', 'r']:
         task_report(sat6_session, report, *options.args[2:])
     elif task == '_experiment':
         task__experiment(sat6_session, *options.args[1:])
