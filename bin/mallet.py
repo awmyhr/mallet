@@ -77,8 +77,8 @@ if sys.version_info <= (2, 6):
     sys.exit("Minimum Python version: 2.6")
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
-__version__ = '3.7.0-beta02' #: current version
-__revised__ = '20190513-170220' #: date of most recent revision
+__version__ = '3.7.0-beta03' #: current version
+__revised__ = '20190606-152912' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Light-weight, host-centric alternative to hammer'
 __description__ = '''Allows the user to perform a variety of tasks on a
@@ -1010,7 +1010,7 @@ class UtilityClass(object):
 #==============================================================================
 class Sat6Object(object):
     ''' Class for interacting with Satellite 6 API '''
-    __version = '2.3.1'
+    __version = '2.4.0'
     #-- Max number of items returned per page.
     #   Though we allow this to be configured, KB articles say 100 is the
     #   optimal value to avoid timeouts.
@@ -1141,6 +1141,14 @@ class Sat6Object(object):
         #             logger.debug('find unsuccessful: %s', self.results)
         #             hostname = None
         return self.util.get_list('%s/hosts/%s/subscriptions' % (self.foreman, hostname))
+
+    def get_host_errata(self, hostname=None):
+        ''' comment
+        '''
+        logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
+        self.results = {"success": False, "msg": None, "return": None}
+
+        return self.util.get_list('%s/hosts/%s/errata' % (self.foreman, hostname))
 
     def get_host_list(self, search=None, field='name'):
         ''' This returns a list of Satellite 6 Hosts.
@@ -2250,6 +2258,7 @@ def task_report(sat6_session, report, *args):
         print('Task: report [alias: r]')
         print('Available Reports:')
         print('     hypervisor-subscriptions')
+        print('     system-currency-csv')
         print('     system-overview')
         print('     system-overview-csv')
     elif report == 'hypervisor-subscriptions':
@@ -2357,6 +2366,42 @@ def task_report(sat6_session, report, *args):
                     print(',%s' % (host['operatingsystem_name']))
             else:
                 print(',unkonwn')
+    elif report == 'system-currency-csv':
+        #-- This is designed to emulate 'spacewalk-report system-currency' as closely as possible
+        print('system_id,org_id,name,critical,important,moderate,low,bug,enhancement,score')
+        for host in sat6_session.get_host_list():
+            if ('content_facet_attributes' in host
+                and 'subscription_facet_attributes' in host):
+                err_cri = 0 ; err_imp = 0 ; err_mod = 0
+                err_low = 0 ; err_bug = 0 ; err_enh = 0
+                # host['content_facet_attributes']['content_view_id']
+                # host['content_facet_attributes']['lifecycle_environment_id']
+                # use lifecycle_environment_id of 1 for Library
+                if (host['content_facet_attributes']['errata_counts'] is not None
+                    and host['content_facet_attributes']['errata_counts']['total'] != 0):
+                    for errata in sat6_session.get_host_errata(host['id']):
+                        if errata['type'] == 'security':
+                            if errata['severity'] == 'Critical':
+                                err_cri += 1
+                            elif errata['severity'] == 'Important':
+                                err_imp += 1
+                            elif errata['severity'] == 'Moderate':
+                                err_mod += 1
+                            elif errata['severity'] == 'Low':
+                                err_low += 1
+                        elif errata['type'] == 'bugfix':
+                            err_bug += 1
+                        elif errata['type'] == 'enhancement':
+                            err_enh += 1
+                #- Calculate currency score like 'spacewalk-report system-currency'
+                err_score = ((err_cri * 32) + (err_imp * 16) + (err_mod * 8) +
+                             (err_low * 4)  + (err_bug * 2)  + (err_enh * 1))
+                #-
+                print('%s,%s,%s,%s,%s,%s,%s,%s,%s,%s' % (host['id'],
+                    host['organization_id'], host['name'],
+                    err_cri, err_imp, err_mod, err_low, err_bug,
+                    err_enh, err_score)
+                )
     else:
         options.parser.error('Unknown report: %s' % report)
     return True
