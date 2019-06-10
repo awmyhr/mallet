@@ -78,7 +78,7 @@ if sys.version_info <= (2, 6):
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
 __version__ = '3.7.0-beta03' #: current version
-__revised__ = '20190606-152912' #: date of most recent revision
+__revised__ = '20190610-134752' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Light-weight, host-centric alternative to hammer'
 __description__ = '''Allows the user to perform a variety of tasks on a
@@ -494,6 +494,7 @@ class RunOptions(object):
 
     '''
     _defaults = {
+        'applicable': False,
         'authkey': None,
         'create': False,
         'debug': False,
@@ -615,6 +616,13 @@ class RunOptions(object):
         return None
 
     @property
+    def applicable(self):
+        ''' Class property '''
+        if self._options is not None:
+            return self._options.applicable
+        return self._defaults['applicable']
+
+    @property
     def lifecycle(self):
         ''' Class property '''
         if self._options is not None:
@@ -716,6 +724,9 @@ class RunOptions(object):
         parser.add_option('--skipzero', dest='skipzero', action='store_true',
                           help='Skip hosts with zero to report in lists.',
                           default=self._configs.get('user', 'skipzero'))
+        parser.add_option('--applicable', dest='applicable', action='store_true',
+                          help='Check applicable errata rather then just installable.',
+                          default=self._configs.get('user', 'applicable'))
 
         #-- Hidden Options
         #   These can *not* be set in a config file
@@ -775,7 +786,7 @@ class RunOptions(object):
 #==============================================================================
 class UtilityClass(object):
     ''' Class for interacting with Satellite 6 API '''
-    __version = '1.3.0'
+    __version = '1.4.0'
 
     per_page = 100
 
@@ -975,7 +986,7 @@ class UtilityClass(object):
         logger.debug('get_item: %s', results['msg'])
         return results
 
-    def get_list(self, url, search=None, field='name', per_page=None):
+    def get_list(self, url, search=None, field='name', per_page=None, params=None):
         ''' This returns a list of Satellite 6 Hosts.
 
         Returns:
@@ -985,14 +996,16 @@ class UtilityClass(object):
         logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
         if per_page is None:
             per_page = self.per_page
-        if search is None:
+        if params is None:
             params = {'page': 1, 'per_page': per_page}
         else:
+            params['page'] = 1
+            params['per_page'] = per_page
+        if search is not None:
             if any(symbol in search for symbol in '=~!^'):
-                params = {'page': 1, 'per_page': per_page, 'search': search}
+                params['search'] = search
             else:
-                params = {'page': 1, 'per_page': per_page,
-                          'search': '%s~"%s"' % (field, search)}
+                params['search'] = '%s~"%s"' % (field, search)
         item = 0
         page_item = 0
 
@@ -1142,13 +1155,23 @@ class Sat6Object(object):
         #             hostname = None
         return self.util.get_list('%s/hosts/%s/subscriptions' % (self.foreman, hostname))
 
-    def get_host_errata(self, hostname=None):
+    def get_host_errata(self, host=None, applicable=False):
         ''' comment
         '''
         logger.debug('Entering Function: %s', sys._getframe().f_code.co_name) #: pylint: disable=protected-access
         self.results = {"success": False, "msg": None, "return": None}
 
-        return self.util.get_list('%s/hosts/%s/errata' % (self.foreman, hostname))
+        host = self.get_host(host)
+        if 'content_facet_attributes' in host:
+            if applicable:
+                env_id = 1
+            else:
+                env_id = host['content_facet_attributes']['lifecycle_environment_id']
+            params = {'environment_id': env_id,
+                      'content_view_id': host['content_facet_attributes']['content_view_id']}
+        else:
+            params = None
+        return self.util.get_list('%s/hosts/%s/errata' % (self.foreman, host['id']), params=params)
 
     def get_host_list(self, search=None, field='name'):
         ''' This returns a list of Satellite 6 Hosts.
@@ -2379,7 +2402,7 @@ def task_report(sat6_session, report, *args):
                 # use lifecycle_environment_id of 1 for Library
                 if (host['content_facet_attributes']['errata_counts'] is not None
                     and host['content_facet_attributes']['errata_counts']['total'] != 0):
-                    for errata in sat6_session.get_host_errata(host['id']):
+                    for errata in sat6_session.get_host_errata(host['id'], applicable=options.applicable):
                         if errata['type'] == 'security':
                             if errata['severity'] == 'Critical':
                                 err_cri += 1
