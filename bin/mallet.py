@@ -77,8 +77,8 @@ if sys.version_info <= (2, 6):
     sys.exit("Minimum Python version: 2.6")
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
-__version__ = '3.7.0-beta03' #: current version
-__revised__ = '20190610-134752' #: date of most recent revision
+__version__ = '3.7.0-beta04' #: current version
+__revised__ = '20190702-122658' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Light-weight, host-centric alternative to hammer'
 __description__ = '''Allows the user to perform a variety of tasks on a
@@ -2372,8 +2372,8 @@ def task_report(sat6_session, report, *args):
             else:
                 print(',-,-,-,-', end='')
             #-
-            if 'updated_at' in host:
-                print(',%s' % host['updated_at'], end='')
+            if 'subscription_facet_attributes' in host and 'last_checkin' in host['subscription_facet_attributes']:
+                print(',%s' % host['subscription_facet_attributes']['last_checkin'], end='')
             else:
                 print(',unknown', end='')
             #-
