@@ -77,8 +77,8 @@ if sys.version_info <= (2, 6):
     sys.exit("Minimum Python version: 2.6")
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
-__version__ = '3.7.0-beta04' #: current version
-__revised__ = '20190702-122658' #: date of most recent revision
+__version__ = '3.7.0-beta05' #: current version
+__revised__ = '20190916-144050' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Light-weight, host-centric alternative to hammer'
 __description__ = '''Allows the user to perform a variety of tasks on a
@@ -2138,7 +2138,8 @@ def task_hypervisor(sat6_session, verb, *args):
         print('Retrieving hypervisor list. This could take quite some time...')
         print('%-35s: %s' % ('Name', 'Subscription Status'))
         print('=' * 70)
-        for host in sat6_session.get_host_list('hypervisor=true'):
+        # for host in sat6_session.get_host_list('hypervisor=true'):
+        for host in sat6_session.get_host_list('name ~ virt-who-*'):
             if 'subscription_status_label' in host:
                 print('%s%-35s: %s%s' % (options.hl_start,
                                          host['name'].rstrip('-1').lstrip('virt-who-'),
@@ -2285,7 +2286,8 @@ def task_report(sat6_session, report, *args):
         print('     system-overview')
         print('     system-overview-csv')
     elif report == 'hypervisor-subscriptions':
-        for host in sat6_session.get_host_list('hypervisor=true'):
+        # for host in sat6_session.get_host_list('hypervisor=true'):
+        for host in sat6_session.get_host_list('name ~ virt-who-*'):
             host_info = sat6_session.get_host(host['id'])
             num_vm = len(host_info['subscription_facet_attributes']['virtual_guests'])
             host_subs = []
