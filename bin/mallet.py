@@ -77,8 +77,8 @@ if sys.version_info <= (2, 6):
     sys.exit("Minimum Python version: 2.6")
 #==============================================================================
 #-- Variables which are meta for the script should be dunders (__varname__)
-__version__ = '3.7.0-beta05' #: current version
-__revised__ = '20190916-144050' #: date of most recent revision
+__version__ = '3.7.0' #: current version
+__revised__ = '20191223-140002' #: date of most recent revision
 __contact__ = 'awmyhr <awmyhr@gmail.com>' #: primary contact for support/?'s
 __synopsis__ = 'Light-weight, host-centric alternative to hammer'
 __description__ = '''Allows the user to perform a variety of tasks on a
@@ -2393,12 +2393,12 @@ def task_report(sat6_session, report, *args):
                 print(',unkonwn')
     elif report == 'system-currency-csv':
         #-- This is designed to emulate 'spacewalk-report system-currency' as closely as possible
-        print('system_id,org_id,name,critical,important,moderate,low,bug,enhancement,score')
+        print('system_id,org_id,name,critical,important,moderate,low,bug,enhancement,score,os_name')
         for host in sat6_session.get_host_list():
+            err_cri = 0 ; err_imp = 0 ; err_mod = 0
+            err_low = 0 ; err_bug = 0 ; err_enh = 0
             if ('content_facet_attributes' in host
                 and 'subscription_facet_attributes' in host):
-                err_cri = 0 ; err_imp = 0 ; err_mod = 0
-                err_low = 0 ; err_bug = 0 ; err_enh = 0
                 # host['content_facet_attributes']['content_view_id']
                 # host['content_facet_attributes']['lifecycle_environment_id']
                 # use lifecycle_environment_id of 1 for Library
@@ -2422,11 +2422,18 @@ def task_report(sat6_session, report, *args):
                 err_score = ((err_cri * 32) + (err_imp * 16) + (err_mod * 8) +
                              (err_low * 4)  + (err_bug * 2)  + (err_enh * 1))
                 #-
-                print('%s,%s,%s,%s,%s,%s,%s,%s,%s,%s' % (host['id'],
-                    host['organization_id'], host['name'],
-                    err_cri, err_imp, err_mod, err_low, err_bug,
-                    err_enh, err_score)
-                )
+                if err_score == 0 and options.skipzero:
+                    pass
+                else:
+                    if 'operatingsystem_name' in host:
+                        host_os = host['operatingsystem_name']
+                    else:
+                        host_os = 'unknown'
+                    print('%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s' % (host['id'],
+                        host['organization_id'], host['name'],
+                        err_cri, err_imp, err_mod, err_low, err_bug,
+                        err_enh, err_score, host_os)
+                    )
     else:
         options.parser.error('Unknown report: %s' % report)
     return True
